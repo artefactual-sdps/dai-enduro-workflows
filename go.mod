@@ -1,4 +1,4 @@
-module github.com/artefactual-sdps/custom-enduro-workflows
+module github.com/artefactual-sdps/dai-enduro-workflows
 
 go 1.26.4
 

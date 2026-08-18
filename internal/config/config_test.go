@@ -7,7 +7,7 @@ import (
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/fs"
 
-	"github.com/artefactual-sdps/custom-enduro-workflows/internal/config"
+	"github.com/artefactual-sdps/dai-enduro-workflows/internal/config"
 )
 
 const testConfig = `# Config
@@ -18,7 +18,7 @@ address = "host:port"
 namespace = "default"
 [worker]
 maxConcurrentSessions = 1
-taskQueue = "custom-enduro"
+taskQueue = "dai-enduro"
 [preprocessing]
 workflowName = "preprocessing"
 sharedPath = "/home/enduro/shared"
@@ -42,7 +42,7 @@ func TestConfig(t *testing.T) {
 	for _, tc := range []test{
 		{
 			name:       "Loads configuration from a TOML file",
-			configFile: "custom-enduro-worker.toml",
+			configFile: "dai-enduro-worker.toml",
 			toml:       testConfig,
 			wantFound:  true,
 			wantCfg: config.Configuration{
@@ -54,7 +54,7 @@ func TestConfig(t *testing.T) {
 				},
 				Worker: config.WorkerConfig{
 					MaxConcurrentSessions: 1,
-					TaskQueue:             "custom-enduro",
+					TaskQueue:             "dai-enduro",
 				},
 				Preprocessing: config.PreprocessingConfig{
 					WorkflowName: "preprocessing",
@@ -67,7 +67,7 @@ func TestConfig(t *testing.T) {
 		},
 		{
 			name:       "Errors when configuration values are not valid",
-			configFile: "custom-enduro-worker.toml",
+			configFile: "dai-enduro-worker.toml",
 			wantFound:  true,
 			wantErr: `invalid configuration
 Temporal.Address: missing required value
@@ -77,13 +77,13 @@ Preprocessing.WorkflowName: missing required value`,
 		},
 		{
 			name:       "Errors when MaxConcurrentSessions is less than 1",
-			configFile: "custom-enduro-worker.toml",
+			configFile: "dai-enduro-worker.toml",
 			toml: `# Config
 [temporal]
 address = "host:port"
 [worker]
 maxConcurrentSessions = -1
-taskQueue = "custom-enduro"
+taskQueue = "dai-enduro"
 [preprocessing]
 workflowName = "preprocessing"
 sharedPath = "/home/enduro/shared"
@@ -94,12 +94,12 @@ Worker.MaxConcurrentSessions: -1 is less than the minimum value (1)`,
 		},
 		{
 			name:       "Errors when bagcreate checksumAlgorithm is invalid",
-			configFile: "custom-enduro-worker.toml",
+			configFile: "dai-enduro-worker.toml",
 			toml: `# Config
 [temporal]
 address = "host:port"
 [worker]
-taskQueue = "custom-enduro"
+taskQueue = "dai-enduro"
 [preprocessing]
 workflowName = "preprocessing"
 sharedPath = "/home/enduro/shared"
@@ -112,7 +112,7 @@ Preprocessing.BagCreate: ChecksumAlgorithm: invalid value "unknown", must be one
 		},
 		{
 			name:       "Errors when TOML is invalid",
-			configFile: "custom-enduro-worker.toml",
+			configFile: "dai-enduro-worker.toml",
 			toml:       "bad TOML",
 			wantFound:  true,
 			wantErr:    "failed to read configuration file: While parsing config: toml: expected character =",
@@ -120,7 +120,7 @@ Preprocessing.BagCreate: ChecksumAlgorithm: invalid value "unknown", must be one
 		{
 			name:            "Errors when no config file is found in the default paths",
 			wantFound:       false,
-			wantErrContains: "Config File \"custom-enduro-worker\" Not Found in \"[",
+			wantErrContains: "Config File \"dai-enduro-worker\" Not Found in \"[",
 		},
 		{
 			name:            "Errors when the given configFile is not found",
@@ -132,7 +132,7 @@ Preprocessing.BagCreate: ChecksumAlgorithm: invalid value "unknown", must be one
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			tmpDir := fs.NewDir(t, "custom-enduro-worker-test", fs.WithFile("custom-enduro-worker.toml", tc.toml))
+			tmpDir := fs.NewDir(t, "dai-enduro-worker-test", fs.WithFile("dai-enduro-worker.toml", tc.toml))
 
 			configFile := ""
 			if tc.configFile != "" {

@@ -7,7 +7,7 @@
 
 set -eu
 
-MODULE_PATH="${MODULE_PATH:-github.com/artefactual-sdps/custom-enduro-workflows}"
+MODULE_PATH="${MODULE_PATH:-github.com/artefactual-sdps/dai-enduro-workflows}"
 STRIP="${STRIP:-1}"
 
 IFS=".$IFS" read -r major minor patch < internal/version/VERSION.txt

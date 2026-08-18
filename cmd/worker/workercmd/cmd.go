@@ -12,8 +12,8 @@ import (
 	temporalsdk_worker "go.temporal.io/sdk/worker"
 	temporalsdk_workflow "go.temporal.io/sdk/workflow"
 
-	"github.com/artefactual-sdps/custom-enduro-workflows/internal/config"
-	"github.com/artefactual-sdps/custom-enduro-workflows/internal/workflows"
+	"github.com/artefactual-sdps/dai-enduro-workflows/internal/config"
+	"github.com/artefactual-sdps/dai-enduro-workflows/internal/workflows"
 )
 
 type Main struct {

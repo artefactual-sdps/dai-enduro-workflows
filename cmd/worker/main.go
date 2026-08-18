@@ -11,12 +11,12 @@ import (
 	"github.com/spf13/pflag"
 	"go.artefactual.dev/tools/log"
 
-	"github.com/artefactual-sdps/custom-enduro-workflows/cmd/worker/workercmd"
-	"github.com/artefactual-sdps/custom-enduro-workflows/internal/config"
-	"github.com/artefactual-sdps/custom-enduro-workflows/internal/version"
+	"github.com/artefactual-sdps/dai-enduro-workflows/cmd/worker/workercmd"
+	"github.com/artefactual-sdps/dai-enduro-workflows/internal/config"
+	"github.com/artefactual-sdps/dai-enduro-workflows/internal/version"
 )
 
-const appName = "custom-enduro-worker"
+const appName = "dai-enduro-worker"
 
 func main() {
 	p := pflag.NewFlagSet(appName, pflag.ExitOnError)

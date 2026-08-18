@@ -13,8 +13,8 @@ import (
 	temporalsdk_testsuite "go.temporal.io/sdk/testsuite"
 	temporalsdk_worker "go.temporal.io/sdk/worker"
 
-	"github.com/artefactual-sdps/custom-enduro-workflows/internal/config"
-	"github.com/artefactual-sdps/custom-enduro-workflows/internal/workflows"
+	"github.com/artefactual-sdps/dai-enduro-workflows/internal/config"
+	"github.com/artefactual-sdps/dai-enduro-workflows/internal/workflows"
 )
 
 const sharedPath = "/shared/path/"

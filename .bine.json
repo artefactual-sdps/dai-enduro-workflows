@@ -1,6 +1,6 @@
 // See https://github.com/artefactual-labs/bine for config details.
 {
-  "project": "custom-enduro-workflows",
+  "project": "dai-enduro-workflows",
   "bins": [
     {
       "name": "golangci-lint",

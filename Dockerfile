@@ -9,7 +9,7 @@ COPY --link go.* ./
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
 COPY --link . .
 
-FROM build-go AS build-custom-enduro-worker
+FROM build-go AS build-dai-enduro-worker
 ARG VERSION_PATH
 ARG VERSION_LONG
 ARG VERSION_SHORT
@@ -22,7 +22,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 	go build \
 	-trimpath \
 	-ldflags="$ldflags" \
-	-o /out/custom-enduro-worker \
+	-o /out/dai-enduro-worker \
 	./cmd/worker
 
 FROM alpine:3.18.2 AS base
@@ -33,6 +33,6 @@ RUN adduser -u ${USER_ID} -S -D enduro enduro
 USER enduro
 RUN mkdir /home/enduro/shared
 
-FROM base AS custom-enduro-worker
-COPY --from=build-custom-enduro-worker --link /out/custom-enduro-worker /home/enduro/bin/custom-enduro-worker
-CMD ["/home/enduro/bin/custom-enduro-worker"]
+FROM base AS dai-enduro-worker
+COPY --from=build-dai-enduro-worker --link /out/dai-enduro-worker /home/enduro/bin/dai-enduro-worker
+CMD ["/home/enduro/bin/dai-enduro-worker"]

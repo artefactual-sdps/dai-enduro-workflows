@@ -144,7 +144,7 @@ template Tiltfile and mount the preprocessing volume in the active Enduro
 worker:
 
 ```dotenv
-CHILD_WORKFLOW_PATHS=../custom-enduro-workflows
+CHILD_WORKFLOW_PATHS=../dai-enduro-workflows
 MOUNT_PREPROCESSING_VOLUME=true
 ```
 
