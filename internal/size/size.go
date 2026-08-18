@@ -1,6 +1,7 @@
 package size
 
 import (
+	"fmt"
 	"io/fs"
 	"path/filepath"
 
@@ -29,6 +30,9 @@ func GetDirSize(path string) (uint64, error) {
 			}
 
 			s := info.Size()
+			if s < 0 {
+				return fmt.Errorf("negative file size for %s: %d", p, s)
+			}
 			size += uint64(s)
 		}
 
