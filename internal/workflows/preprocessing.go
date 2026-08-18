@@ -11,7 +11,9 @@ import (
 	temporalsdk_temporal "go.temporal.io/sdk/temporal"
 	temporalsdk_workflow "go.temporal.io/sdk/workflow"
 
+	"github.com/artefactual-sdps/dai-enduro-workflows/internal/activities"
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/config"
+	"github.com/artefactual-sdps/dai-enduro-workflows/internal/size"
 )
 
 type PreprocessingWorkflow struct {
@@ -34,15 +36,36 @@ func (w *PreprocessingWorkflow) Execute(
 		return nil, temporal.NewNonRetryableError(fmt.Errorf("error calling workflow with unexpected inputs"))
 	}
 	result.RelativePath = params.RelativePath
+	sourcePath := filepath.Join(w.cfg.SharedPath, params.RelativePath)
+
+	task0 := result.NewTask(temporalsdk_workflow.Now(ctx), "SIP validate Size")
+	var validatSIPSizeResult activities.CheckSIPSizeResult
+	err := temporalsdk_workflow.ExecuteActivity(
+		withFilesystemActivityOpts(ctx),
+		activities.CheckSIPSizeName,
+		&activities.CheckSIPSizeParams{Path: sourcePath},
+	).Get(ctx, &validatSIPSizeResult)
+	if err != nil {
+		logger.Error("System error", "message", err.Error())
+		result.SystemError(temporalsdk_workflow.Now(ctx), task0, "SIP validation has failed")
+		return result, nil
+	}
+
+	if validatSIPSizeResult.SizeInBytes > size.Terabyte {
+		result.ValidationError(temporalsdk_workflow.Now(ctx), task0, "SIP is bigger than 1 Terabyte")
+		return result, nil
+	} else {
+		task0.Succeed(temporalsdk_workflow.Now(ctx), "SIP size checked: %s", validatSIPSizeResult.SizeHuman)
+	}
 
 	// Bag the SIP for Enduro processing.
 	task := result.NewTask(temporalsdk_workflow.Now(ctx), "Bag SIP")
 	var createBag bagcreate.Result
-	err := temporalsdk_workflow.ExecuteActivity(
+	err = temporalsdk_workflow.ExecuteActivity(
 		withFilesystemActivityOpts(ctx),
 		bagcreate.Name,
 		&bagcreate.Params{
-			SourcePath: filepath.Join(w.cfg.SharedPath, params.RelativePath),
+			SourcePath: sourcePath,
 		},
 	).Get(ctx, &createBag)
 	if err != nil {

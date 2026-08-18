@@ -13,6 +13,7 @@ import (
 	temporalsdk_testsuite "go.temporal.io/sdk/testsuite"
 	temporalsdk_worker "go.temporal.io/sdk/worker"
 
+	"github.com/artefactual-sdps/dai-enduro-workflows/internal/activities"
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/config"
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/workflows"
 )
@@ -35,6 +36,11 @@ func (s *PreprocessingTestSuite) SetupTest(cfg config.Configuration) {
 	s.env.RegisterActivityWithOptions(
 		bagcreate.New(cfg.Preprocessing.BagCreate).Execute,
 		temporalsdk_activity.RegisterOptions{Name: bagcreate.Name},
+	)
+
+	s.env.RegisterActivityWithOptions(
+		activities.NewCheckSIPSize().Execute,
+		temporalsdk_activity.RegisterOptions{Name: activities.CheckSIPSizeName},
 	)
 
 	cfg.Preprocessing.SharedPath = sharedPath

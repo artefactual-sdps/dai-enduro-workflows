@@ -12,6 +12,7 @@ import (
 	temporalsdk_worker "go.temporal.io/sdk/worker"
 	temporalsdk_workflow "go.temporal.io/sdk/workflow"
 
+	"github.com/artefactual-sdps/dai-enduro-workflows/internal/activities"
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/config"
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/workflows"
 )
@@ -59,6 +60,11 @@ func (m *Main) Run(ctx context.Context) error {
 	w.RegisterActivityWithOptions(
 		bagcreate.New(m.cfg.Preprocessing.BagCreate).Execute,
 		temporalsdk_activity.RegisterOptions{Name: bagcreate.Name},
+	)
+
+	w.RegisterActivityWithOptions(
+		activities.NewCheckSIPSize().Execute,
+		temporalsdk_activity.RegisterOptions{Name: activities.CheckSIPSizeName},
 	)
 
 	if err := w.Start(); err != nil {

@@ -5,6 +5,7 @@ go 1.26.4
 require (
 	github.com/artefactual-sdps/enduro v0.29.0
 	github.com/artefactual-sdps/temporal-activities v0.0.0-20260406175419-303edb7db3db
+	github.com/dustin/go-humanize v1.0.1
 	github.com/go-logr/logr v1.4.3
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
