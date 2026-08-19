@@ -15,7 +15,7 @@ if os.environ.get('TRIGGER_MODE_AUTO', '').lower() in true:
 
 # Docker images
 custom_build(
-  ref="custom-enduro-worker:dev",
+  ref="dai-enduro-worker:dev",
   command=["hack/build_docker.sh"],
   deps=["."],
 )
@@ -25,7 +25,7 @@ k8s_yaml(kustomize("hack/kube"))
 
 # Tilt resources
 k8s_resource(
-  "custom-enduro-worker",
-  labels=["Custom"],
+  "dai-enduro-worker",
+  labels=["DAI"],
   trigger_mode=trigger_mode,
 )

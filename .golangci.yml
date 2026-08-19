@@ -57,7 +57,7 @@ formatters:
       sections:
         - standard
         - default
-        - prefix(github.com/artefactual-sdps/custom-enduro-workflows)
+        - prefix(github.com/artefactual-sdps/dai-enduro-workflows)
       no-inline-comments: true
       no-prefix-comments: false
     gofumpt:

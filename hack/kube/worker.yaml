@@ -1,25 +1,25 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: custom-enduro-worker
+  name: dai-enduro-worker
   labels:
-    app: custom-enduro-worker
+    app: dai-enduro-worker
 spec:
-  serviceName: custom-enduro-worker
+  serviceName: dai-enduro-worker
   selector:
     matchLabels:
-      app: custom-enduro-worker
+      app: dai-enduro-worker
   template:
     metadata:
       labels:
-        app: custom-enduro-worker
+        app: dai-enduro-worker
     spec:
       serviceAccountName: sdps
       securityContext:
         fsGroup: 1000
       containers:
-        - name: custom-enduro-worker
-          image: custom-enduro-worker:dev
+        - name: dai-enduro-worker
+          image: dai-enduro-worker:dev
           volumeMounts:
             - name: config
               mountPath: /home/enduro/.config
@@ -30,7 +30,7 @@ spec:
       volumes:
         - name: config
           secret:
-            secretName: custom-enduro-secret
+            secretName: dai-enduro-secret
         - name: shared-dir
           persistentVolumeClaim:
             claimName: preprocessing-pvc

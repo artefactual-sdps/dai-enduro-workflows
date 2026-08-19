@@ -1,4 +1,4 @@
-PROJECT := custom-enduro-workflows
+PROJECT := dai-enduro-workflows
 MAKEDIR := hack/make
 SHELL   := /bin/bash
 
@@ -20,7 +20,7 @@ define NEWLINE
 endef
 
 IGNORED_PACKAGES := \
-	github.com/artefactual-sdps/custom-enduro-workflows/hack/%
+	github.com/artefactual-sdps/dai-enduro-workflows/hack/%
 
 PACKAGES := $(shell go list ./...)
 TEST_PACKAGES := $(filter-out $(IGNORED_PACKAGES),$(PACKAGES))
