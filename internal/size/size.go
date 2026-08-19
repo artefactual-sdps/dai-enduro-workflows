@@ -16,7 +16,7 @@ const (
 )
 
 // Returns the size of the folder in bytes.
-func GetDirSize(path string) (uint64, error) {
+func DirSize(path string) (uint64, error) {
 	var size uint64
 	err := filepath.WalkDir(path, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {

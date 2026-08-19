@@ -25,7 +25,7 @@ spec:
               mountPath: /home/enduro/.config
               readOnly: true
             - name: shared-dir
-              mountPath: /home/enduro/preprocessing
+              mountPath: /home/enduro/shared
           resources: {}
       volumes:
         - name: config

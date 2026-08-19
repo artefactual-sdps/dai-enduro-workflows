@@ -65,7 +65,7 @@ func TestGetDirSize(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := size.GetDirSize(tc.setup(t))
+			got, err := size.DirSize(tc.setup(t))
 			if tc.wantErr != "" {
 				assert.ErrorContains(t, err, tc.wantErr)
 				return
@@ -91,7 +91,7 @@ func TestGetDirSizePermissionDenied(t *testing.T) {
 		_ = os.Chmod(locked, 0o700)
 	})
 
-	_, err := size.GetDirSize(locked)
+	_, err := size.DirSize(locked)
 	assert.ErrorContains(t, err, "permission denied")
 }
 

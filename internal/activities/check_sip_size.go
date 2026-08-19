@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/size"
+	"go.artefactual.dev/tools/temporal"
 )
 
 const CheckSIPSizeName = "check-sip-size"
@@ -26,10 +27,10 @@ func NewCheckSIPSize() *CheckSIPSize {
 
 func (a *CheckSIPSize) Execute(ctx context.Context, params *CheckSIPSizeParams) (*CheckSIPSizeResult, error) {
 	if params.Path == "" {
-		return nil, errors.New("path cannot be empty")
+		return nil, temporal.NewNonRetryableError(errors.New("path cannot be empty"))
 	}
 
-	res, err := size.GetDirSize(params.Path)
+	res, err := size.DirSize(params.Path)
 	if err != nil {
 		return nil, err
 	}
