@@ -13,6 +13,7 @@ import (
 
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/activities"
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/config"
+	"github.com/artefactual-sdps/dai-enduro-workflows/internal/sip"
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/size"
 )
 
@@ -37,6 +38,18 @@ func (w *PreprocessingWorkflow) Execute(
 	}
 	result.RelativePath = params.RelativePath
 	sourcePath := filepath.Join(w.cfg.SharedPath, params.RelativePath)
+
+	sipName := filepath.Base(sourcePath)
+	validateNameTask := result.NewTask(temporalsdk_workflow.Now(ctx), "SIP validate Name")
+	if err := sip.ValidateName(sipName); err != nil {
+		result.ValidationError(
+			temporalsdk_workflow.Now(ctx),
+			validateNameTask,
+			fmt.Sprintf("Invalid SIP name: %s", err.Error()),
+		)
+		return result, nil
+	}
+	validateNameTask.Succeed(temporalsdk_workflow.Now(ctx), "SIP name valid: %s", sipName)
 
 	task0 := result.NewTask(temporalsdk_workflow.Now(ctx), "SIP validate Size")
 	var validatSIPSizeResult activities.CheckSIPSizeResult
