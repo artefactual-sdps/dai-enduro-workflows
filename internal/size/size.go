@@ -15,15 +15,31 @@ const (
 	Terabyte = 1000 * Gygabyte // 1_000_000_000_000
 )
 
-// Returns the size of the folder in bytes.
-func DirSize(path string) (uint64, error) {
-	var size uint64
+type Info struct {
+	SizeInBytes         uint64
+	NumberOfFiles       uint
+	NumberOfDirectories uint
+}
+
+// Returns information about the path provided.
+// - Size in Bytes
+// - Number of files
+// - Number of directories
+func DirInfo(path string) (Info, error) {
+	var result Info
 	err := filepath.WalkDir(path, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 
-		if !d.IsDir() {
+		if d.IsDir() {
+			// Ignore the root for the directory count.
+			if p == path {
+				return nil
+			}
+
+			result.NumberOfDirectories++
+		} else {
 			info, err := d.Info()
 			if err != nil {
 				return err
@@ -33,13 +49,14 @@ func DirSize(path string) (uint64, error) {
 			if s < 0 {
 				return fmt.Errorf("negative file size for %s: %d", p, s)
 			}
-			size += uint64(s)
+			result.SizeInBytes += uint64(s)
+			result.NumberOfFiles++
 		}
 
 		return nil
 	})
 
-	return size, err
+	return result, err
 }
 
 func FormateBytes(b uint64) string {

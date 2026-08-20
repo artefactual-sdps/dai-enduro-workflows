@@ -63,8 +63,8 @@ func (m *Main) Run(ctx context.Context) error {
 	)
 
 	w.RegisterActivityWithOptions(
-		activities.NewCheckSIPSize().Execute,
-		temporalsdk_activity.RegisterOptions{Name: activities.CheckSIPSizeName},
+		activities.NewCheckSIPInfo().Execute,
+		temporalsdk_activity.RegisterOptions{Name: activities.CheckSIPInfoName},
 	)
 
 	if err := w.Start(); err != nil {

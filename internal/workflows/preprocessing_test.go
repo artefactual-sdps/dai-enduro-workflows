@@ -43,8 +43,8 @@ func (s *PreprocessingTestSuite) SetupTest(cfg config.Configuration) {
 	)
 
 	s.env.RegisterActivityWithOptions(
-		activities.NewCheckSIPSize().Execute,
-		temporalsdk_activity.RegisterOptions{Name: activities.CheckSIPSizeName},
+		activities.NewCheckSIPInfo().Execute,
+		temporalsdk_activity.RegisterOptions{Name: activities.CheckSIPInfoName},
 	)
 
 	cfg.Preprocessing.SharedPath = sharedPath
@@ -66,11 +66,14 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 	// Mock activities.
 	sessionCtx := mock.AnythingOfType("*context.timerCtx")
 	s.env.OnActivity(
-		activities.CheckSIPSizeName,
+		activities.CheckSIPInfoName,
 		sessionCtx,
-		&activities.CheckSIPSizeParams{Path: filepath.Join(sharedPath, relPath)},
+		&activities.CheckSIPInfoParams{Path: filepath.Join(sharedPath, relPath)},
 	).Return(
-		&activities.CheckSIPSizeResult{SizeInBytes: 1024, SizeHuman: "1.0 kB"},
+		&activities.CheckSIPInfoResult{
+			SizeHuman: "1.0 kB",
+			Info:      size.Info{SizeInBytes: 1024},
+		},
 		nil,
 	)
 	s.env.OnActivity(
@@ -112,6 +115,13 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 					CompletedAt: s.env.Now().UTC(),
 				},
 				{
+					Name:        "SIP validate payload",
+					Message:     "SIP payload size checked. Files: 0 - Directories: 0",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
 					Name:        "Bag SIP",
 					Message:     "SIP has been bagged",
 					Outcome:     childwf.TaskOutcomeSuccess,
@@ -131,11 +141,14 @@ func (s *PreprocessingTestSuite) TestSystemError() {
 	// Mock activities.
 	sessionCtx := mock.AnythingOfType("*context.timerCtx")
 	s.env.OnActivity(
-		activities.CheckSIPSizeName,
+		activities.CheckSIPInfoName,
 		sessionCtx,
-		&activities.CheckSIPSizeParams{Path: filepath.Join(sharedPath, relPath)},
+		&activities.CheckSIPInfoParams{Path: filepath.Join(sharedPath, relPath)},
 	).Return(
-		&activities.CheckSIPSizeResult{SizeInBytes: 1024, SizeHuman: "1.0 kB"},
+		&activities.CheckSIPInfoResult{
+			SizeHuman: "1.0 kB",
+			Info:      size.Info{SizeInBytes: 1024},
+		},
 		nil,
 	)
 	s.env.OnActivity(
@@ -180,6 +193,13 @@ func (s *PreprocessingTestSuite) TestSystemError() {
 					CompletedAt: s.env.Now().UTC(),
 				},
 				{
+					Name:        "SIP validate payload",
+					Message:     "SIP payload size checked. Files: 0 - Directories: 0",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
 					Name:        "Bag SIP",
 					Message:     "System error: bagging has failed",
 					Outcome:     childwf.TaskOutcomeSystemFailure,
@@ -199,9 +219,9 @@ func (s *PreprocessingTestSuite) TestSIPSizeSystemError() {
 	// Mock activities.
 	sessionCtx := mock.AnythingOfType("*context.timerCtx")
 	s.env.OnActivity(
-		activities.CheckSIPSizeName,
+		activities.CheckSIPInfoName,
 		sessionCtx,
-		&activities.CheckSIPSizeParams{Path: filepath.Join(sharedPath, relPath)},
+		&activities.CheckSIPInfoParams{Path: filepath.Join(sharedPath, relPath)},
 	).Return(
 		nil,
 		fmt.Errorf("lstat %s: no such file or directory", filepath.Join(sharedPath, relPath)),
@@ -249,11 +269,14 @@ func (s *PreprocessingTestSuite) TestSIPTooLarge() {
 	// Mock activities.
 	sessionCtx := mock.AnythingOfType("*context.timerCtx")
 	s.env.OnActivity(
-		activities.CheckSIPSizeName,
+		activities.CheckSIPInfoName,
 		sessionCtx,
-		&activities.CheckSIPSizeParams{Path: filepath.Join(sharedPath, relPath)},
+		&activities.CheckSIPInfoParams{Path: filepath.Join(sharedPath, relPath)},
 	).Return(
-		&activities.CheckSIPSizeResult{SizeInBytes: size.Terabyte + 1, SizeHuman: "1.0 TB"},
+		&activities.CheckSIPInfoResult{
+			SizeHuman: "1.0 TB",
+			Info:      size.Info{SizeInBytes: size.Terabyte + 1},
+		},
 		nil,
 	)
 

@@ -11,13 +11,13 @@ import (
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/size"
 )
 
-func TestGetDirSize(t *testing.T) {
+func TestDirInfo(t *testing.T) {
 	t.Parallel()
 
 	type test struct {
 		name    string
 		setup   func(t *testing.T) string
-		want    uint64
+		want    size.Info
 		wantErr string
 	}
 
@@ -28,10 +28,14 @@ func TestGetDirSize(t *testing.T) {
 				t.Helper()
 				return fs.NewDir(t, "empty").Path()
 			},
-			want: 0,
+			want: size.Info{
+				SizeInBytes:         0,
+				NumberOfFiles:       0,
+				NumberOfDirectories: 0,
+			},
 		},
 		{
-			name: "Sums nested file sizes and ignores directories",
+			name: "Sums nested file sizes and counts files and directories",
 			setup: func(t *testing.T) string {
 				t.Helper()
 				return fs.NewDir(t, "sip",
@@ -42,7 +46,11 @@ func TestGetDirSize(t *testing.T) {
 					),
 				).Path()
 			},
-			want: 11,
+			want: size.Info{
+				SizeInBytes:         11,
+				NumberOfFiles:       3,
+				NumberOfDirectories: 1,
+			},
 		},
 		{
 			name: "Returns the size of a single file path",
@@ -51,7 +59,11 @@ func TestGetDirSize(t *testing.T) {
 				dir := fs.NewDir(t, "file", fs.WithFile("only.txt", "abcd"))
 				return dir.Join("only.txt")
 			},
-			want: 4,
+			want: size.Info{
+				SizeInBytes:         4,
+				NumberOfFiles:       1,
+				NumberOfDirectories: 0,
+			},
 		},
 		{
 			name: "Errors when the path does not exist",
@@ -65,7 +77,7 @@ func TestGetDirSize(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := size.DirSize(tc.setup(t))
+			got, err := size.DirInfo(tc.setup(t))
 			if tc.wantErr != "" {
 				assert.ErrorContains(t, err, tc.wantErr)
 				return
@@ -77,7 +89,7 @@ func TestGetDirSize(t *testing.T) {
 	}
 }
 
-func TestGetDirSizePermissionDenied(t *testing.T) {
+func TestDirInfoPermissionDenied(t *testing.T) {
 	t.Parallel()
 
 	if os.Geteuid() == 0 {
@@ -91,7 +103,7 @@ func TestGetDirSizePermissionDenied(t *testing.T) {
 		_ = os.Chmod(locked, 0o700)
 	})
 
-	_, err := size.DirSize(locked)
+	_, err := size.DirInfo(locked)
 	assert.ErrorContains(t, err, "permission denied")
 }
 
