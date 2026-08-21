@@ -72,27 +72,36 @@ func (w *PreprocessingWorkflow) Execute(
 
 	if validatSIPSizeResult.SizeInBytes > size.Terabyte {
 		result.ValidationError(temporalsdk_workflow.Now(ctx), taskValidateSize, "SIP is bigger than 1 Terabyte")
-		return result, nil
+	} else {
+		taskValidateSize.Succeed(temporalsdk_workflow.Now(ctx), "SIP size checked: %s", validatSIPSizeResult.SizeHuman)
 	}
-	taskValidateSize.Succeed(temporalsdk_workflow.Now(ctx), "SIP size checked: %s", validatSIPSizeResult.SizeHuman)
 
-	taskValidatePayloadSize := result.NewTask(temporalsdk_workflow.Now(ctx), "SIP validate payload")
-	if validatSIPSizeResult.NumberOfFiles > MAX_FILES {
-		msg := fmt.Sprintf("SIP payload has more than %d files", MAX_FILES)
-		result.ValidationError(temporalsdk_workflow.Now(ctx), taskValidatePayloadSize, msg)
-		return result, nil
+	{
+		// Payload size validation.
+		validationErrors := []string{}
+		taskValidatePayloadSize := result.NewTask(temporalsdk_workflow.Now(ctx), "SIP validate payload")
+		if validatSIPSizeResult.NumberOfFiles > MAX_FILES {
+			msg := fmt.Sprintf("SIP payload has more than %d files", MAX_FILES)
+			validationErrors = append(validationErrors, msg)
+		}
+		if validatSIPSizeResult.NumberOfDirectories > MAX_DIRECTORIES {
+			msg := fmt.Sprintf("SIP payload has more than %d directories", MAX_DIRECTORIES)
+			validationErrors = append(validationErrors, msg)
+		}
+		if len(validationErrors) > 0 {
+			result.ValidationError(temporalsdk_workflow.Now(ctx), taskValidatePayloadSize, validationErrors...)
+		} else {
+			taskValidatePayloadSize.Succeed(
+				temporalsdk_workflow.Now(ctx),
+				"SIP payload size checked. Files: %d - Directories: %d",
+				validatSIPSizeResult.NumberOfFiles,
+				validatSIPSizeResult.NumberOfDirectories,
+			)
+		}
+		if result.Outcome != childwf.OutcomeSuccess {
+			return result, nil
+		}
 	}
-	if validatSIPSizeResult.NumberOfDirectories > MAX_DIRECTORIES {
-		msg := fmt.Sprintf("SIP payload has more than %d directories", MAX_DIRECTORIES)
-		result.ValidationError(temporalsdk_workflow.Now(ctx), taskValidatePayloadSize, msg)
-		return result, nil
-	}
-	taskValidatePayloadSize.Succeed(
-		temporalsdk_workflow.Now(ctx),
-		"SIP payload size checked. Files: %d - Directories: %d",
-		validatSIPSizeResult.NumberOfFiles,
-		validatSIPSizeResult.NumberOfDirectories,
-	)
 
 	// Bag the SIP for Enduro processing.
 	taskBagSip := result.NewTask(temporalsdk_workflow.Now(ctx), "Bag SIP")

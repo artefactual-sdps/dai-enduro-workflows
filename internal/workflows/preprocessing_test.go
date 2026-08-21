@@ -72,7 +72,11 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 	).Return(
 		&activities.CheckSIPInfoResult{
 			SizeHuman: "1.0 kB",
-			Info:      size.Info{SizeInBytes: 1024},
+			Info: size.Info{
+				SizeInBytes:         1024,
+				NumberOfFiles:       1,
+				NumberOfDirectories: 1,
+			},
 		},
 		nil,
 	)
@@ -116,7 +120,7 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 				},
 				{
 					Name:        "SIP validate payload",
-					Message:     "SIP payload size checked. Files: 0 - Directories: 0",
+					Message:     "SIP payload size checked. Files: 1 - Directories: 1",
 					Outcome:     childwf.TaskOutcomeSuccess,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
@@ -309,6 +313,13 @@ func (s *PreprocessingTestSuite) TestSIPTooLarge() {
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
 				},
+				{
+					Name:        "SIP validate payload",
+					Message:     "SIP payload size checked. Files: 0 - Directories: 0",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
 			},
 		},
 		&result,
@@ -345,4 +356,98 @@ func (s *PreprocessingTestSuite) TestInvalidSIPName() {
 		},
 		&result,
 	)
+}
+
+func (s *PreprocessingTestSuite) TestSIPPayloadTooLarge() {
+	relPath := "transfer"
+
+	type test struct {
+		info    size.Info
+		message string
+	}
+
+	testCases := map[string]test{
+		"Too many files": {
+			info: size.Info{
+				SizeInBytes:   1024,
+				NumberOfFiles: workflows.MAX_FILES + 1,
+			},
+			message: fmt.Sprintf("Content error: SIP payload has more than %d files", workflows.MAX_FILES),
+		},
+		"Too many directories": {
+			info: size.Info{
+				SizeInBytes:         1024,
+				NumberOfDirectories: workflows.MAX_DIRECTORIES + 1,
+			},
+			message: fmt.Sprintf(
+				"Content error: SIP payload has more than %d directories",
+				workflows.MAX_DIRECTORIES,
+			),
+		},
+		"Too many files and directories": {
+			info: size.Info{
+				SizeInBytes:         1024,
+				NumberOfFiles:       workflows.MAX_FILES + 1,
+				NumberOfDirectories: workflows.MAX_DIRECTORIES + 1,
+			},
+			message: fmt.Sprintf(
+				"Content error: SIP payload has more than %d files\n\nSIP payload has more than %d directories",
+				workflows.MAX_FILES,
+				workflows.MAX_DIRECTORIES,
+			),
+		},
+	}
+
+	for name, tc := range testCases {
+		s.Run(name, func() {
+			s.SetupTest(config.Configuration{})
+
+			sessionCtx := mock.AnythingOfType("*context.timerCtx")
+			s.env.OnActivity(
+				activities.CheckSIPInfoName,
+				sessionCtx,
+				&activities.CheckSIPInfoParams{Path: filepath.Join(sharedPath, relPath)},
+			).Return(
+				&activities.CheckSIPInfoResult{
+					SizeHuman: "1.0 kB",
+					Info:      tc.info,
+				},
+				nil,
+			)
+
+			s.env.ExecuteWorkflow(
+				s.workflow.Execute,
+				&childwf.PreprocessingParams{RelativePath: relPath},
+			)
+
+			s.True(s.env.IsWorkflowCompleted())
+
+			var result childwf.PreprocessingResult
+			err := s.env.GetWorkflowResult(&result)
+			s.NoError(err)
+			s.Equal(
+				&childwf.PreprocessingResult{
+					Outcome:      childwf.OutcomeContentError,
+					RelativePath: relPath,
+					Tasks: []*childwf.Task{
+						{
+							Name:        "SIP validate Size",
+							Message:     "SIP size checked: 1.0 kB",
+							Outcome:     childwf.TaskOutcomeSuccess,
+							StartedAt:   s.env.Now().UTC(),
+							CompletedAt: s.env.Now().UTC(),
+						},
+						{
+							Name:        "SIP validate payload",
+							Message:     tc.message,
+							Outcome:     childwf.TaskOutcomeValidationFailure,
+							StartedAt:   s.env.Now().UTC(),
+							CompletedAt: s.env.Now().UTC(),
+						},
+					},
+				},
+				&result,
+			)
+		})
+	}
 }
