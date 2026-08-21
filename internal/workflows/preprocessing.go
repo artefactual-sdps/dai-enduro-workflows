@@ -50,7 +50,7 @@ func (w *PreprocessingWorkflow) Execute(
 		)
 		return result, nil
 	}
-	validateSIPNameTask.Succeed(temporalsdk_workflow.Now(ctx), "SIP name is valid", sipName)
+	validateSIPNameTask.Succeed(temporalsdk_workflow.Now(ctx), "SIP name is valid: %s", sipName)
 
 	task0 := result.NewTask(temporalsdk_workflow.Now(ctx), "SIP validate Size")
 	var validatSIPSizeResult activities.CheckSIPSizeResult

@@ -99,7 +99,7 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 			Tasks: []*childwf.Task{
 				{
 					Name:        "SIP validate Name",
-					Message:     "SIP name valid: " + validSIPName,
+					Message:     "SIP name is valid: " + validSIPName,
 					Outcome:     childwf.TaskOutcomeSuccess,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
@@ -167,7 +167,7 @@ func (s *PreprocessingTestSuite) TestSystemError() {
 			Tasks: []*childwf.Task{
 				{
 					Name:        "SIP validate Name",
-					Message:     "SIP name valid: " + validSIPName,
+					Message:     "SIP name is valid: " + validSIPName,
 					Outcome:     childwf.TaskOutcomeSuccess,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
@@ -224,7 +224,7 @@ func (s *PreprocessingTestSuite) TestSIPSizeSystemError() {
 			Tasks: []*childwf.Task{
 				{
 					Name:        "SIP validate Name",
-					Message:     "SIP name valid: " + validSIPName,
+					Message:     "SIP name is valid: " + validSIPName,
 					Outcome:     childwf.TaskOutcomeSuccess,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
@@ -274,7 +274,7 @@ func (s *PreprocessingTestSuite) TestSIPTooLarge() {
 			Tasks: []*childwf.Task{
 				{
 					Name:        "SIP validate Name",
-					Message:     "SIP name valid: " + validSIPName,
+					Message:     "SIP name is valid: " + validSIPName,
 					Outcome:     childwf.TaskOutcomeSuccess,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
@@ -313,7 +313,7 @@ func (s *PreprocessingTestSuite) TestInvalidSIPName() {
 			Tasks: []*childwf.Task{
 				{
 					Name:        "SIP validate Name",
-					Message:     "Content error: - expected 4 sections divided by '_', got: 1",
+					Message:     "Content error: Invalid SIP name 'transfer':\n- expected 4 sections divided by '_', got: 1",
 					Outcome:     childwf.TaskOutcomeValidationFailure,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
