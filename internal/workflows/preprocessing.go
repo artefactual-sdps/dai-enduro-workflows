@@ -3,6 +3,7 @@ package workflows
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/artefactual-sdps/enduro/pkg/childwf"
@@ -40,16 +41,16 @@ func (w *PreprocessingWorkflow) Execute(
 	sourcePath := filepath.Join(w.cfg.SharedPath, params.RelativePath)
 
 	sipName := filepath.Base(sourcePath)
-	validateNameTask := result.NewTask(temporalsdk_workflow.Now(ctx), "SIP validate Name")
-	if err := sip.ValidateName(sipName); err != nil {
+	validateSIPNameTask := result.NewTask(temporalsdk_workflow.Now(ctx), "SIP validate Name")
+	if validationErrors := sip.ValidateName(sipName); len(validationErrors) > 0 {
 		result.ValidationError(
 			temporalsdk_workflow.Now(ctx),
-			validateNameTask,
-			fmt.Sprintf("Invalid SIP name: %s", err.Error()),
+			validateSIPNameTask,
+			fmt.Sprintf("Invalid SIP name '%s':\n%s", sipName, ul(validationErrors)),
 		)
 		return result, nil
 	}
-	validateNameTask.Succeed(temporalsdk_workflow.Now(ctx), "SIP name valid: %s", sipName)
+	validateSIPNameTask.Succeed(temporalsdk_workflow.Now(ctx), "SIP name is valid", sipName)
 
 	task0 := result.NewTask(temporalsdk_workflow.Now(ctx), "SIP validate Size")
 	var validatSIPSizeResult activities.CheckSIPSizeResult
@@ -98,4 +99,18 @@ func withFilesystemActivityOpts(ctx temporalsdk_workflow.Context) temporalsdk_wo
 			MaximumAttempts: 1,
 		},
 	})
+}
+
+// ul formats a list of strings as an unordered, Markdown-style list.
+func ul(items []string) string {
+	if len(items) == 0 {
+		return ""
+	}
+
+	var s strings.Builder
+	for _, i := range items {
+		fmt.Fprintf(&s, "- %s\n", i)
+	}
+
+	return strings.TrimSuffix(s.String(), "\n")
 }
