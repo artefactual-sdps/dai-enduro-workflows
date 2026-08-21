@@ -15,7 +15,6 @@ import (
 
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/activities"
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/config"
-	"github.com/artefactual-sdps/dai-enduro-workflows/internal/size"
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/workflows"
 )
 
@@ -71,12 +70,10 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 		&activities.CheckSIPInfoParams{Path: filepath.Join(sharedPath, relPath)},
 	).Return(
 		&activities.CheckSIPInfoResult{
-			SizeHuman: "1.0 kB",
-			Info: size.Info{
-				SizeInBytes:         1024,
-				NumberOfFiles:       1,
-				NumberOfDirectories: 1,
-			},
+			SizeHuman:           "1.0 kB",
+			SizeInBytes:         1024,
+			NumberOfFiles:       1,
+			NumberOfDirectories: 1,
 		},
 		nil,
 	)
@@ -150,8 +147,8 @@ func (s *PreprocessingTestSuite) TestSystemError() {
 		&activities.CheckSIPInfoParams{Path: filepath.Join(sharedPath, relPath)},
 	).Return(
 		&activities.CheckSIPInfoResult{
-			SizeHuman: "1.0 kB",
-			Info:      size.Info{SizeInBytes: 1024},
+			SizeHuman:   "1.0 kB",
+			SizeInBytes: 1024,
 		},
 		nil,
 	)
@@ -278,8 +275,8 @@ func (s *PreprocessingTestSuite) TestSIPTooLarge() {
 		&activities.CheckSIPInfoParams{Path: filepath.Join(sharedPath, relPath)},
 	).Return(
 		&activities.CheckSIPInfoResult{
-			SizeHuman: "1.0 TB",
-			Info:      size.Info{SizeInBytes: size.Terabyte + 1},
+			SizeHuman:   "1.0 TB",
+			SizeInBytes: activities.SizeTerabyte + 1,
 		},
 		nil,
 	)
@@ -362,20 +359,22 @@ func (s *PreprocessingTestSuite) TestSIPPayloadTooLarge() {
 	relPath := "transfer"
 
 	type test struct {
-		info    size.Info
+		result  activities.CheckSIPInfoResult
 		message string
 	}
 
 	testCases := map[string]test{
 		"Too many files": {
-			info: size.Info{
+			result: activities.CheckSIPInfoResult{
+				SizeHuman:     "1.0 kB",
 				SizeInBytes:   1024,
 				NumberOfFiles: workflows.MAX_FILES + 1,
 			},
 			message: fmt.Sprintf("Content error: SIP payload has more than %d files", workflows.MAX_FILES),
 		},
 		"Too many directories": {
-			info: size.Info{
+			result: activities.CheckSIPInfoResult{
+				SizeHuman:           "1.0 kB",
 				SizeInBytes:         1024,
 				NumberOfDirectories: workflows.MAX_DIRECTORIES + 1,
 			},
@@ -385,7 +384,8 @@ func (s *PreprocessingTestSuite) TestSIPPayloadTooLarge() {
 			),
 		},
 		"Too many files and directories": {
-			info: size.Info{
+			result: activities.CheckSIPInfoResult{
+				SizeHuman:           "1.0 kB",
 				SizeInBytes:         1024,
 				NumberOfFiles:       workflows.MAX_FILES + 1,
 				NumberOfDirectories: workflows.MAX_DIRECTORIES + 1,
@@ -408,10 +408,7 @@ func (s *PreprocessingTestSuite) TestSIPPayloadTooLarge() {
 				sessionCtx,
 				&activities.CheckSIPInfoParams{Path: filepath.Join(sharedPath, relPath)},
 			).Return(
-				&activities.CheckSIPInfoResult{
-					SizeHuman: "1.0 kB",
-					Info:      tc.info,
-				},
+				&tc.result,
 				nil,
 			)
 

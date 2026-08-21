@@ -1,6 +1,7 @@
-package size_test
+package activities_test
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -8,34 +9,32 @@ import (
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/fs"
 
-	"github.com/artefactual-sdps/dai-enduro-workflows/internal/size"
+	"github.com/artefactual-sdps/dai-enduro-workflows/internal/activities"
 )
 
-func TestDirInfo(t *testing.T) {
+func TestCheckSIPInfo(t *testing.T) {
 	t.Parallel()
 
 	type test struct {
-		name    string
 		setup   func(t *testing.T) string
-		want    size.Info
+		want    *activities.CheckSIPInfoResult
 		wantErr string
 	}
 
-	for _, tc := range []test{
-		{
-			name: "Returns zero for an empty directory",
+	tests := map[string]test{
+		"Returns zero for an empty directory": {
 			setup: func(t *testing.T) string {
 				t.Helper()
 				return fs.NewDir(t, "empty").Path()
 			},
-			want: size.Info{
+			want: &activities.CheckSIPInfoResult{
 				SizeInBytes:         0,
 				NumberOfFiles:       0,
 				NumberOfDirectories: 0,
+				SizeHuman:           "0 B",
 			},
 		},
-		{
-			name: "Sums nested file sizes and counts files and directories",
+		"Sums nested file sizes and counts files and directories": {
 			setup: func(t *testing.T) string {
 				t.Helper()
 				return fs.NewDir(t, "sip",
@@ -46,50 +45,62 @@ func TestDirInfo(t *testing.T) {
 					),
 				).Path()
 			},
-			want: size.Info{
+			want: &activities.CheckSIPInfoResult{
 				SizeInBytes:         11,
 				NumberOfFiles:       3,
 				NumberOfDirectories: 1,
+				SizeHuman:           "11 B",
 			},
 		},
-		{
-			name: "Returns the size of a single file path",
+		"Returns the size of a single file path": {
 			setup: func(t *testing.T) string {
 				t.Helper()
 				dir := fs.NewDir(t, "file", fs.WithFile("only.txt", "abcd"))
 				return dir.Join("only.txt")
 			},
-			want: size.Info{
+			want: &activities.CheckSIPInfoResult{
 				SizeInBytes:         4,
 				NumberOfFiles:       1,
 				NumberOfDirectories: 0,
+				SizeHuman:           "4 B",
 			},
 		},
-		{
-			name: "Errors when the path does not exist",
+		"Errors when the path is empty": {
+			setup: func(t *testing.T) string {
+				t.Helper()
+				return ""
+			},
+			wantErr: "path cannot be empty",
+		},
+		"Errors when the path does not exist": {
 			setup: func(t *testing.T) string {
 				t.Helper()
 				return filepath.Join(t.TempDir(), "missing")
 			},
 			wantErr: "no such file or directory",
 		},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := size.DirInfo(tc.setup(t))
+			got, err := activities.NewCheckSIPInfo().Execute(
+				context.Background(),
+				&activities.CheckSIPInfoParams{Path: tc.setup(t)},
+			)
 			if tc.wantErr != "" {
 				assert.ErrorContains(t, err, tc.wantErr)
 				return
 			}
 
 			assert.NilError(t, err)
-			assert.Equal(t, got, tc.want)
+			assert.DeepEqual(t, got, tc.want)
 		})
 	}
 }
 
-func TestDirInfoPermissionDenied(t *testing.T) {
+func TestCheckSIPInfoPermissionDenied(t *testing.T) {
 	t.Parallel()
 
 	if os.Geteuid() == 0 {
@@ -103,31 +114,9 @@ func TestDirInfoPermissionDenied(t *testing.T) {
 		_ = os.Chmod(locked, 0o700)
 	})
 
-	_, err := size.DirInfo(locked)
+	_, err := activities.NewCheckSIPInfo().Execute(
+		context.Background(),
+		&activities.CheckSIPInfoParams{Path: locked},
+	)
 	assert.ErrorContains(t, err, "permission denied")
-}
-
-func TestFormateBytes(t *testing.T) {
-	t.Parallel()
-
-	type test struct {
-		name string
-		in   uint64
-		want string
-	}
-
-	for _, tc := range []test{
-		{name: "Zero bytes", in: 0, want: "0 B"},
-		{name: "Bytes", in: 1, want: "1 B"},
-		{name: "Kilobytes", in: size.KyloByte, want: "1.0 kB"},
-		{name: "Megabytes", in: size.Megabyte, want: "1.0 MB"},
-		{name: "Gigabytes", in: size.Gygabyte, want: "1.0 GB"},
-		{name: "Terabytes", in: size.Terabyte, want: "1.0 TB"},
-		{name: "Fractional kilobytes", in: 1500, want: "1.5 kB"},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			assert.Equal(t, size.FormateBytes(tc.in), tc.want)
-		})
-	}
 }

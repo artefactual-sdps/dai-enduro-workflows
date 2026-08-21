@@ -15,7 +15,6 @@ import (
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/activities"
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/config"
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/sip"
-	"github.com/artefactual-sdps/dai-enduro-workflows/internal/size"
 )
 
 const (
@@ -70,7 +69,7 @@ func (w *PreprocessingWorkflow) Execute(
 		return result, nil
 	}
 
-	if validatSIPSizeResult.SizeInBytes > size.Terabyte {
+	if validatSIPSizeResult.SizeInBytes > activities.SizeTerabyte {
 		result.ValidationError(temporalsdk_workflow.Now(ctx), taskValidateSize, "SIP is bigger than 1 Terabyte")
 	} else {
 		taskValidateSize.Succeed(temporalsdk_workflow.Now(ctx), "SIP size checked: %s", validatSIPSizeResult.SizeHuman)
