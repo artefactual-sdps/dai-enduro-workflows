@@ -7,6 +7,7 @@ import (
 
 	"github.com/artefactual-sdps/enduro/pkg/childwf"
 	"github.com/artefactual-sdps/temporal-activities/bagcreate"
+	"github.com/artefactual-sdps/temporal-activities/bagextract"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	temporalsdk_activity "go.temporal.io/sdk/activity"
@@ -36,6 +37,10 @@ func (s *PreprocessingTestSuite) SetupTest(cfg config.Configuration) {
 	s.env.SetWorkerOptions(temporalsdk_worker.Options{EnableSessionWorker: true})
 
 	// Register activities.
+	s.env.RegisterActivityWithOptions(
+		bagextract.New().Execute,
+		temporalsdk_activity.RegisterOptions{Name: bagextract.Name},
+	)
 	s.env.RegisterActivityWithOptions(
 		bagcreate.New(cfg.Preprocessing.BagCreate).Execute,
 		temporalsdk_activity.RegisterOptions{Name: bagcreate.Name},
@@ -69,6 +74,15 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 
 	// Mock activities.
 	sessionCtx := mock.AnythingOfType("*context.timerCtx")
+	srcPath := filepath.Join(sharedPath, relPath)
+	s.env.OnActivity(
+		bagextract.Name,
+		sessionCtx,
+		&bagextract.Params{Path: srcPath, Keep: []string{"metadata"}},
+	).Return(
+		&bagextract.Result{Path: srcPath},
+		nil,
+	)
 	s.env.OnActivity(
 		activities.CheckSIPInfoName,
 		sessionCtx,
@@ -93,9 +107,9 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 	s.env.OnActivity(
 		bagcreate.Name,
 		sessionCtx,
-		&bagcreate.Params{SourcePath: filepath.Join(sharedPath, relPath)},
+		&bagcreate.Params{SourcePath: srcPath},
 	).Return(
-		&bagcreate.Result{BagPath: filepath.Join(sharedPath, relPath)},
+		&bagcreate.Result{BagPath: srcPath},
 		nil,
 	)
 
@@ -114,6 +128,13 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 			Outcome:      childwf.OutcomeSuccess,
 			RelativePath: relPath,
 			Tasks: []*childwf.Task{
+				{
+					Name:        "Extract the SIP bag",
+					Message:     "The SIP bag was extracted.",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
 				{
 					Name:        "Validate the SIP name",
 					Message:     "The SIP name is valid: " + validSIPName,
@@ -161,6 +182,15 @@ func (s *PreprocessingTestSuite) TestSystemError() {
 
 	// Mock activities.
 	sessionCtx := mock.AnythingOfType("*context.timerCtx")
+	srcPath := filepath.Join(sharedPath, relPath)
+	s.env.OnActivity(
+		bagextract.Name,
+		sessionCtx,
+		&bagextract.Params{Path: srcPath, Keep: []string{"metadata"}},
+	).Return(
+		&bagextract.Result{Path: srcPath},
+		nil,
+	)
 	s.env.OnActivity(
 		activities.CheckSIPInfoName,
 		sessionCtx,
@@ -183,12 +213,12 @@ func (s *PreprocessingTestSuite) TestSystemError() {
 	s.env.OnActivity(
 		bagcreate.Name,
 		sessionCtx,
-		&bagcreate.Params{SourcePath: filepath.Join(sharedPath, relPath)},
+		&bagcreate.Params{SourcePath: srcPath},
 	).Return(
 		nil,
 		fmt.Errorf(
 			"bagcreate: failed to open %s: permission denied",
-			filepath.Join(sharedPath, relPath),
+			srcPath,
 		),
 	)
 
@@ -207,6 +237,13 @@ func (s *PreprocessingTestSuite) TestSystemError() {
 			Outcome:      childwf.OutcomeSystemError,
 			RelativePath: relPath,
 			Tasks: []*childwf.Task{
+				{
+					Name:        "Extract the SIP bag",
+					Message:     "The SIP bag was extracted.",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
 				{
 					Name:        "Validate the SIP name",
 					Message:     "The SIP name is valid: " + validSIPName,
@@ -254,13 +291,22 @@ func (s *PreprocessingTestSuite) TestSIPSizeSystemError() {
 
 	// Mock activities.
 	sessionCtx := mock.AnythingOfType("*context.timerCtx")
+	srcPath := filepath.Join(sharedPath, relPath)
+	s.env.OnActivity(
+		bagextract.Name,
+		sessionCtx,
+		&bagextract.Params{Path: srcPath, Keep: []string{"metadata"}},
+	).Return(
+		&bagextract.Result{Path: srcPath},
+		nil,
+	)
 	s.env.OnActivity(
 		activities.CheckSIPInfoName,
 		sessionCtx,
 		&activities.CheckSIPInfoParams{Path: filepath.Join(sharedPath, relPath)},
 	).Return(
 		nil,
-		fmt.Errorf("lstat %s: no such file or directory", filepath.Join(sharedPath, relPath)),
+		fmt.Errorf("lstat %s: no such file or directory", srcPath),
 	)
 
 	s.env.ExecuteWorkflow(
@@ -278,6 +324,13 @@ func (s *PreprocessingTestSuite) TestSIPSizeSystemError() {
 			Outcome:      childwf.OutcomeSystemError,
 			RelativePath: relPath,
 			Tasks: []*childwf.Task{
+				{
+					Name:        "Extract the SIP bag",
+					Message:     "The SIP bag was extracted.",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
 				{
 					Name:        "Validate the SIP name",
 					Message:     "The SIP name is valid: " + validSIPName,
@@ -304,6 +357,16 @@ func (s *PreprocessingTestSuite) TestSIPTooLarge() {
 
 	// Mock activities.
 	sessionCtx := mock.AnythingOfType("*context.timerCtx")
+	sourcePath := filepath.Join(sharedPath, relPath)
+	s.env.OnActivity(
+		bagextract.Name,
+		sessionCtx,
+		&bagextract.Params{Path: sourcePath, Keep: []string{"metadata"}},
+	).Return(
+		&bagextract.Result{Path: sourcePath},
+		nil,
+	)
+
 	s.env.OnActivity(
 		activities.CheckSIPInfoName,
 		sessionCtx,
@@ -331,6 +394,13 @@ func (s *PreprocessingTestSuite) TestSIPTooLarge() {
 			Outcome:      childwf.OutcomeContentError,
 			RelativePath: relPath,
 			Tasks: []*childwf.Task{
+				{
+					Name:        "Extract the SIP bag",
+					Message:     "The SIP bag was extracted.",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
 				{
 					Name:        "Validate the SIP name",
 					Message:     "The SIP name is valid: " + validSIPName,
@@ -363,10 +433,19 @@ func (s *PreprocessingTestSuite) TestInvalidFileAndFolderNames() {
 	s.SetupTest(config.Configuration{})
 
 	sessionCtx := mock.AnythingOfType("*context.timerCtx")
+	srcPath := filepath.Join(sharedPath, relPath)
+	s.env.OnActivity(
+		bagextract.Name,
+		sessionCtx,
+		&bagextract.Params{Path: srcPath, Keep: []string{"metadata"}},
+	).Return(
+		&bagextract.Result{Path: srcPath},
+		nil,
+	)
 	s.env.OnActivity(
 		activities.CheckSIPInfoName,
 		sessionCtx,
-		&activities.CheckSIPInfoParams{Path: filepath.Join(sharedPath, relPath)},
+		&activities.CheckSIPInfoParams{Path: srcPath},
 	).Return(
 		&activities.CheckSIPInfoResult{
 			SizeHuman:           "1.0 kB",
@@ -379,7 +458,7 @@ func (s *PreprocessingTestSuite) TestInvalidFileAndFolderNames() {
 	s.env.OnActivity(
 		activities.ValidateFileAndFolderName,
 		sessionCtx,
-		&activities.ValidateFileAndFolderParams{Path: filepath.Join(sharedPath, relPath)},
+		&activities.ValidateFileAndFolderParams{Path: srcPath},
 	).Return(
 		&activities.ValidateFileAndFolderResult{
 			ValidationErrors: []string{
@@ -405,6 +484,13 @@ func (s *PreprocessingTestSuite) TestInvalidFileAndFolderNames() {
 			Outcome:      childwf.OutcomeContentError,
 			RelativePath: relPath,
 			Tasks: []*childwf.Task{
+				{
+					Name:        "Extract the SIP bag",
+					Message:     "The SIP bag was extracted.",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
 				{
 					Name:        "Validate the SIP name",
 					Message:     "The SIP name is valid: " + validSIPName,
@@ -445,6 +531,17 @@ func (s *PreprocessingTestSuite) TestInvalidSIPName() {
 	relPath := "transfer"
 	s.SetupTest(config.Configuration{})
 
+	sessionCtx := mock.AnythingOfType("*context.timerCtx")
+	srcPath := filepath.Join(sharedPath, relPath)
+	s.env.OnActivity(
+		bagextract.Name,
+		sessionCtx,
+		&bagextract.Params{Path: srcPath, Keep: []string{"metadata"}},
+	).Return(
+		&bagextract.Result{Path: srcPath},
+		nil,
+	)
+
 	s.env.ExecuteWorkflow(
 		s.workflow.Execute,
 		&childwf.PreprocessingParams{RelativePath: relPath},
@@ -460,6 +557,13 @@ func (s *PreprocessingTestSuite) TestInvalidSIPName() {
 			Outcome:      childwf.OutcomeContentError,
 			RelativePath: relPath,
 			Tasks: []*childwf.Task{
+				{
+					Name:        "Extract the SIP bag",
+					Message:     "The SIP bag was extracted.",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
 				{
 					Name:        "Validate the SIP name",
 					Message:     "Content error: Invalid SIP name 'transfer':\n- expected 4 sections divided by '_', got: 1",
@@ -521,10 +625,19 @@ func (s *PreprocessingTestSuite) TestSIPPayloadTooLarge() {
 			s.SetupTest(config.Configuration{})
 
 			sessionCtx := mock.AnythingOfType("*context.timerCtx")
+			srcPath := filepath.Join(sharedPath, relPath)
+			s.env.OnActivity(
+				bagextract.Name,
+				sessionCtx,
+				&bagextract.Params{Path: srcPath, Keep: []string{"metadata"}},
+			).Return(
+				&bagextract.Result{Path: srcPath},
+				nil,
+			)
 			s.env.OnActivity(
 				activities.CheckSIPInfoName,
 				sessionCtx,
-				&activities.CheckSIPInfoParams{Path: filepath.Join(sharedPath, relPath)},
+				&activities.CheckSIPInfoParams{Path: srcPath},
 			).Return(
 				&tc.result,
 				nil,
@@ -545,6 +658,13 @@ func (s *PreprocessingTestSuite) TestSIPPayloadTooLarge() {
 					Outcome:      childwf.OutcomeContentError,
 					RelativePath: relPath,
 					Tasks: []*childwf.Task{
+						{
+							Name:        "Extract the SIP bag",
+							Message:     "The SIP bag was extracted.",
+							Outcome:     childwf.TaskOutcomeSuccess,
+							StartedAt:   s.env.Now().UTC(),
+							CompletedAt: s.env.Now().UTC(),
+						},
 						{
 							Name:        "Validate the SIP name",
 							Message:     "The SIP name is valid: " + validSIPName,

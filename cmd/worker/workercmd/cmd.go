@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/artefactual-sdps/temporal-activities/bagcreate"
+	"github.com/artefactual-sdps/temporal-activities/bagextract"
 	"github.com/go-logr/logr"
 	"go.artefactual.dev/tools/temporal"
 	temporalsdk_activity "go.temporal.io/sdk/activity"
@@ -55,6 +56,11 @@ func (m *Main) Run(ctx context.Context) error {
 	w.RegisterWorkflowWithOptions(
 		workflows.NewPreprocessingWorkflow(m.cfg.Preprocessing).Execute,
 		temporalsdk_workflow.RegisterOptions{Name: m.cfg.Preprocessing.WorkflowName},
+	)
+
+	w.RegisterActivityWithOptions(
+		bagextract.New().Execute,
+		temporalsdk_activity.RegisterOptions{Name: bagextract.Name},
 	)
 
 	w.RegisterActivityWithOptions(

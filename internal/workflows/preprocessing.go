@@ -8,6 +8,7 @@ import (
 
 	"github.com/artefactual-sdps/enduro/pkg/childwf"
 	"github.com/artefactual-sdps/temporal-activities/bagcreate"
+	"github.com/artefactual-sdps/temporal-activities/bagextract"
 	"go.artefactual.dev/tools/temporal"
 	temporalsdk_temporal "go.temporal.io/sdk/temporal"
 	temporalsdk_workflow "go.temporal.io/sdk/workflow"
@@ -45,6 +46,24 @@ func (w *PreprocessingWorkflow) Execute(
 	result.RelativePath = params.RelativePath
 	sourcePath := filepath.Join(w.cfg.SharedPath, params.RelativePath)
 
+	extractBagTask := result.NewTask(temporalsdk_workflow.Now(ctx), "Extract the SIP bag")
+	var res bagextract.Result
+	err := temporalsdk_workflow.ExecuteActivity(
+		withFilesystemActivityOpts(ctx),
+		bagextract.Name,
+		bagextract.Params{
+			Path: sourcePath,
+			Keep: []string{"metadata"},
+		},
+	).Get(ctx, &res)
+	if err != nil {
+		logger.Error("System error", "message", err.Error())
+		result.SystemError(temporalsdk_workflow.Now(ctx), extractBagTask, "Failed to extract the SIP bag")
+		return result, nil
+	}
+	extractBagTask.Succeed(temporalsdk_workflow.Now(ctx), "The SIP bag was extracted.")
+	sourcePath = res.Path
+
 	sipName := filepath.Base(sourcePath)
 	validateSIPNameTask := result.NewTask(temporalsdk_workflow.Now(ctx), "Validate the SIP name")
 	if validationErrors := sip.ValidateName(sipName); len(validationErrors) > 0 {
@@ -59,7 +78,7 @@ func (w *PreprocessingWorkflow) Execute(
 
 	taskValidateSize := result.NewTask(temporalsdk_workflow.Now(ctx), "Validate the SIP size")
 	var validatSIPSizeResult activities.CheckSIPInfoResult
-	err := temporalsdk_workflow.ExecuteActivity(
+	err = temporalsdk_workflow.ExecuteActivity(
 		withFilesystemActivityOpts(ctx),
 		activities.CheckSIPInfoName,
 		&activities.CheckSIPInfoParams{Path: sourcePath},

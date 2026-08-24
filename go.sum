@@ -25,8 +25,8 @@ github.com/artefactual-labs/bine v0.28.2 h1:Va5BerHvf7CIhHnkvdx9uZGHh6NbqO6gzDNg
 github.com/artefactual-labs/bine v0.28.2/go.mod h1:FQYycLEjOL/2RRzcOXawU5pIdAGAyD8oiWAPhleVNxo=
 github.com/artefactual-sdps/enduro v0.29.0 h1:0Eciws/lbDpRwITzVDDYBSiGKE5kX3BIz1lI030lDWY=
 github.com/artefactual-sdps/enduro v0.29.0/go.mod h1:im5aNrCN9eL4vsWAETfHzGS3BZ8dE3CysxaptbAadg4=
-github.com/artefactual-sdps/temporal-activities v0.0.0-20260406175419-303edb7db3db h1:/oTyIMjn5Goo/+OK9LEA4iqpWXomSwxmhovO/+Z2MQw=
-github.com/artefactual-sdps/temporal-activities v0.0.0-20260406175419-303edb7db3db/go.mod h1:6GCIagAHHlLlfI5rr7gr/z2NiSFoIBj7WmVUHMecHO8=
+github.com/artefactual-sdps/temporal-activities v0.0.0-20260821182335-fb41cda44536 h1:3qmpJQ/3abJlOgCpp88QZ9ZkyiOsoKmIm2X3SHufE24=
+github.com/artefactual-sdps/temporal-activities v0.0.0-20260821182335-fb41cda44536/go.mod h1:apjykeFf9cvBJNzbHajrfpV8+0O1Zd20Lv8Nf47e9sw=
 github.com/bodgit/plumbing v1.3.0 h1:pf9Itz1JOQgn7vEOE7v7nlEfBykYqvUYioC61TwWCFU=
 github.com/bodgit/plumbing v1.3.0/go.mod h1:JOTb4XiRu5xfnmdnDJo6GmSbSbtSyufrsyZFByMtKEs=
 github.com/bodgit/sevenzip v1.6.1 h1:kikg2pUMYC9ljU7W9SaqHXhym5HyKm8/M/jd31fYan4=
