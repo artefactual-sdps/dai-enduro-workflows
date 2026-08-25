@@ -41,7 +41,7 @@ func (w *PreprocessingWorkflow) Execute(
 	sourcePath := filepath.Join(w.cfg.SharedPath, params.RelativePath)
 
 	sipName := filepath.Base(sourcePath)
-	validateSIPNameTask := result.NewTask(temporalsdk_workflow.Now(ctx), "SIP validate Name")
+	validateSIPNameTask := result.NewTask(temporalsdk_workflow.Now(ctx), "Validate the SIP name")
 	if validationErrors := sip.ValidateName(sipName); len(validationErrors) > 0 {
 		result.ValidationError(
 			temporalsdk_workflow.Now(ctx),

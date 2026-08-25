@@ -4,9 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"go.artefactual.dev/tools/temporal"
-
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/size"
+	"go.artefactual.dev/tools/temporal"
 )
 
 const CheckSIPSizeName = "check-sip-size"

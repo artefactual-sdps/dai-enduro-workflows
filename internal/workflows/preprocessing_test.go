@@ -98,8 +98,8 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 			RelativePath: relPath,
 			Tasks: []*childwf.Task{
 				{
-					Name:        "SIP validate Name",
-					Message:     "SIP name is valid: " + validSIPName,
+					Name:        "Validate the SIP name",
+					Message:     "The SIP name is valid: " + validSIPName,
 					Outcome:     childwf.TaskOutcomeSuccess,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
@@ -166,8 +166,8 @@ func (s *PreprocessingTestSuite) TestSystemError() {
 			RelativePath: relPath,
 			Tasks: []*childwf.Task{
 				{
-					Name:        "SIP validate Name",
-					Message:     "SIP name is valid: " + validSIPName,
+					Name:        "Validate the SIP name",
+					Message:     "The SIP name is valid: " + validSIPName,
 					Outcome:     childwf.TaskOutcomeSuccess,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
@@ -223,8 +223,8 @@ func (s *PreprocessingTestSuite) TestSIPSizeSystemError() {
 			RelativePath: relPath,
 			Tasks: []*childwf.Task{
 				{
-					Name:        "SIP validate Name",
-					Message:     "SIP name is valid: " + validSIPName,
+					Name:        "Validate the SIP name",
+					Message:     "The SIP name is valid: " + validSIPName,
 					Outcome:     childwf.TaskOutcomeSuccess,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
@@ -273,8 +273,8 @@ func (s *PreprocessingTestSuite) TestSIPTooLarge() {
 			RelativePath: relPath,
 			Tasks: []*childwf.Task{
 				{
-					Name:        "SIP validate Name",
-					Message:     "SIP name is valid: " + validSIPName,
+					Name:        "Validate the SIP name",
+					Message:     "The SIP name is valid: " + validSIPName,
 					Outcome:     childwf.TaskOutcomeSuccess,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
@@ -312,7 +312,7 @@ func (s *PreprocessingTestSuite) TestInvalidSIPName() {
 			RelativePath: relPath,
 			Tasks: []*childwf.Task{
 				{
-					Name:        "SIP validate Name",
+					Name:        "Validate the SIP name",
 					Message:     "Content error: Invalid SIP name 'transfer':\n- expected 4 sections divided by '_', got: 1",
 					Outcome:     childwf.TaskOutcomeValidationFailure,
 					StartedAt:   s.env.Now().UTC(),
