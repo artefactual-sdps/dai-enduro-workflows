@@ -56,7 +56,7 @@ func (w *PreprocessingWorkflow) Execute(
 	}
 	validateSIPNameTask.Succeed(temporalsdk_workflow.Now(ctx), "The SIP name is valid: %s", sipName)
 
-	taskValidateSize := result.NewTask(temporalsdk_workflow.Now(ctx), "SIP validate Size")
+	taskValidateSize := result.NewTask(temporalsdk_workflow.Now(ctx), "Validate the SIP size")
 	var validatSIPSizeResult activities.CheckSIPInfoResult
 	err := temporalsdk_workflow.ExecuteActivity(
 		withFilesystemActivityOpts(ctx),
@@ -78,7 +78,7 @@ func (w *PreprocessingWorkflow) Execute(
 	{
 		// Payload size validation.
 		validationErrors := []string{}
-		taskValidatePayloadSize := result.NewTask(temporalsdk_workflow.Now(ctx), "SIP validate payload")
+		taskValidatePayloadSize := result.NewTask(temporalsdk_workflow.Now(ctx), "Validate the SIP payload")
 		if validatSIPSizeResult.NumberOfFiles > MAX_FILES {
 			msg := fmt.Sprintf("SIP payload has more than %d files", MAX_FILES)
 			validationErrors = append(validationErrors, msg)
@@ -88,7 +88,8 @@ func (w *PreprocessingWorkflow) Execute(
 			validationErrors = append(validationErrors, msg)
 		}
 		if len(validationErrors) > 0 {
-			result.ValidationError(temporalsdk_workflow.Now(ctx), taskValidatePayloadSize, validationErrors...)
+			msg := strings.Join(validationErrors, " - ")
+			result.ValidationError(temporalsdk_workflow.Now(ctx), taskValidatePayloadSize, msg)
 		} else {
 			taskValidatePayloadSize.Succeed(
 				temporalsdk_workflow.Now(ctx),

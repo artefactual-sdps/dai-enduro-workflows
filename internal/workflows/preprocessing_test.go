@@ -109,14 +109,14 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 					CompletedAt: s.env.Now().UTC(),
 				},
 				{
-					Name:        "SIP validate Size",
+					Name:        "Validate the SIP size",
 					Message:     "SIP size checked: 1.0 kB",
 					Outcome:     childwf.TaskOutcomeSuccess,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
 				},
 				{
-					Name:        "SIP validate payload",
+					Name:        "Validate the SIP payload",
 					Message:     "SIP payload size checked. Files: 1 - Directories: 1",
 					Outcome:     childwf.TaskOutcomeSuccess,
 					StartedAt:   s.env.Now().UTC(),
@@ -187,14 +187,14 @@ func (s *PreprocessingTestSuite) TestSystemError() {
 					CompletedAt: s.env.Now().UTC(),
 				},
 				{
-					Name:        "SIP validate Size",
+					Name:        "Validate the SIP size",
 					Message:     "SIP size checked: 1.0 kB",
 					Outcome:     childwf.TaskOutcomeSuccess,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
 				},
 				{
-					Name:        "SIP validate payload",
+					Name:        "Validate the SIP payload",
 					Message:     "SIP payload size checked. Files: 0 - Directories: 0",
 					Outcome:     childwf.TaskOutcomeSuccess,
 					StartedAt:   s.env.Now().UTC(),
@@ -251,7 +251,7 @@ func (s *PreprocessingTestSuite) TestSIPSizeSystemError() {
 					CompletedAt: s.env.Now().UTC(),
 				},
 				{
-					Name:        "SIP validate Size",
+					Name:        "Validate the SIP size",
 					Message:     "System error: SIP validation has failed",
 					Outcome:     childwf.TaskOutcomeSystemFailure,
 					StartedAt:   s.env.Now().UTC(),
@@ -304,14 +304,14 @@ func (s *PreprocessingTestSuite) TestSIPTooLarge() {
 					CompletedAt: s.env.Now().UTC(),
 				},
 				{
-					Name:        "SIP validate Size",
+					Name:        "Validate the SIP size",
 					Message:     "Content error: SIP is bigger than 1 Terabyte",
 					Outcome:     childwf.TaskOutcomeValidationFailure,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
 				},
 				{
-					Name:        "SIP validate payload",
+					Name:        "Validate the SIP payload",
 					Message:     "SIP payload size checked. Files: 0 - Directories: 0",
 					Outcome:     childwf.TaskOutcomeSuccess,
 					StartedAt:   s.env.Now().UTC(),
@@ -391,7 +391,7 @@ func (s *PreprocessingTestSuite) TestSIPPayloadTooLarge() {
 				NumberOfDirectories: workflows.MAX_DIRECTORIES + 1,
 			},
 			message: fmt.Sprintf(
-				"Content error: SIP payload has more than %d files\n\nSIP payload has more than %d directories",
+				"Content error: SIP payload has more than %d files - SIP payload has more than %d directories",
 				workflows.MAX_FILES,
 				workflows.MAX_DIRECTORIES,
 			),
@@ -428,14 +428,14 @@ func (s *PreprocessingTestSuite) TestSIPPayloadTooLarge() {
 					RelativePath: relPath,
 					Tasks: []*childwf.Task{
 						{
-							Name:        "SIP validate Size",
+							Name:        "Validate the SIP size",
 							Message:     "SIP size checked: 1.0 kB",
 							Outcome:     childwf.TaskOutcomeSuccess,
 							StartedAt:   s.env.Now().UTC(),
 							CompletedAt: s.env.Now().UTC(),
 						},
 						{
-							Name:        "SIP validate payload",
+							Name:        "Validate the SIP payload",
 							Message:     tc.message,
 							Outcome:     childwf.TaskOutcomeValidationFailure,
 							StartedAt:   s.env.Now().UTC(),
