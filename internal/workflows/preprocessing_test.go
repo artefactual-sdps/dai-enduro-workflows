@@ -19,7 +19,10 @@ import (
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/workflows"
 )
 
-const sharedPath = "/shared/path/"
+const (
+	sharedPath   = "/shared/path/"
+	validSIPName = "SIP_2025-10-20_IANUS1234_ABT"
+)
 
 type PreprocessingTestSuite struct {
 	suite.Suite
@@ -57,7 +60,7 @@ func TestPreprocessingWorkflow(t *testing.T) {
 }
 
 func (s *PreprocessingTestSuite) TestSuccess() {
-	relPath := "transfer"
+	relPath := validSIPName
 	s.SetupTest(config.Configuration{})
 
 	// Mock activities.
@@ -95,6 +98,13 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 			RelativePath: relPath,
 			Tasks: []*childwf.Task{
 				{
+					Name:        "Validate the SIP name",
+					Message:     "The SIP name is valid: " + validSIPName,
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
 					Name:        "SIP validate Size",
 					Message:     "SIP size checked: 1.0 kB",
 					Outcome:     childwf.TaskOutcomeSuccess,
@@ -115,7 +125,7 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 }
 
 func (s *PreprocessingTestSuite) TestSystemError() {
-	relPath := "transfer"
+	relPath := validSIPName
 	s.SetupTest(config.Configuration{})
 
 	// Mock activities.
@@ -156,6 +166,13 @@ func (s *PreprocessingTestSuite) TestSystemError() {
 			RelativePath: relPath,
 			Tasks: []*childwf.Task{
 				{
+					Name:        "Validate the SIP name",
+					Message:     "The SIP name is valid: " + validSIPName,
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
 					Name:        "SIP validate Size",
 					Message:     "SIP size checked: 1.0 kB",
 					Outcome:     childwf.TaskOutcomeSuccess,
@@ -176,7 +193,7 @@ func (s *PreprocessingTestSuite) TestSystemError() {
 }
 
 func (s *PreprocessingTestSuite) TestSIPSizeSystemError() {
-	relPath := "transfer"
+	relPath := validSIPName
 	s.SetupTest(config.Configuration{})
 
 	// Mock activities.
@@ -206,6 +223,13 @@ func (s *PreprocessingTestSuite) TestSIPSizeSystemError() {
 			RelativePath: relPath,
 			Tasks: []*childwf.Task{
 				{
+					Name:        "Validate the SIP name",
+					Message:     "The SIP name is valid: " + validSIPName,
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
 					Name:        "SIP validate Size",
 					Message:     "System error: SIP validation has failed",
 					Outcome:     childwf.TaskOutcomeSystemFailure,
@@ -219,7 +243,7 @@ func (s *PreprocessingTestSuite) TestSIPSizeSystemError() {
 }
 
 func (s *PreprocessingTestSuite) TestSIPTooLarge() {
-	relPath := "transfer"
+	relPath := validSIPName
 	s.SetupTest(config.Configuration{})
 
 	// Mock activities.
@@ -249,8 +273,47 @@ func (s *PreprocessingTestSuite) TestSIPTooLarge() {
 			RelativePath: relPath,
 			Tasks: []*childwf.Task{
 				{
+					Name:        "Validate the SIP name",
+					Message:     "The SIP name is valid: " + validSIPName,
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
 					Name:        "SIP validate Size",
 					Message:     "Content error: SIP is bigger than 1 Terabyte",
+					Outcome:     childwf.TaskOutcomeValidationFailure,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+			},
+		},
+		&result,
+	)
+}
+
+func (s *PreprocessingTestSuite) TestInvalidSIPName() {
+	relPath := "transfer"
+	s.SetupTest(config.Configuration{})
+
+	s.env.ExecuteWorkflow(
+		s.workflow.Execute,
+		&childwf.PreprocessingParams{RelativePath: relPath},
+	)
+
+	s.True(s.env.IsWorkflowCompleted())
+
+	var result childwf.PreprocessingResult
+	err := s.env.GetWorkflowResult(&result)
+	s.NoError(err)
+	s.Equal(
+		&childwf.PreprocessingResult{
+			Outcome:      childwf.OutcomeContentError,
+			RelativePath: relPath,
+			Tasks: []*childwf.Task{
+				{
+					Name:        "Validate the SIP name",
+					Message:     "Content error: Invalid SIP name 'transfer':\n- expected 4 sections divided by '_', got: 1",
 					Outcome:     childwf.TaskOutcomeValidationFailure,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
