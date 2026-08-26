@@ -13,7 +13,6 @@ import (
 
 const (
 	CheckSIPInfoName = "check-sip-info"
-	SizeTerabyte     = 1_000_000_000_000
 )
 
 type CheckSIPInfoParams struct {

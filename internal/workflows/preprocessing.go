@@ -20,6 +20,7 @@ import (
 const (
 	MAX_FILES       = 999_999
 	MAX_DIRECTORIES = 999_999
+	MAX_BYTES       = 1_000_000_000_000 // 1 Terabyte.
 )
 
 type PreprocessingWorkflow struct {
@@ -69,7 +70,7 @@ func (w *PreprocessingWorkflow) Execute(
 		return result, nil
 	}
 
-	if validatSIPSizeResult.SizeInBytes > activities.SizeTerabyte {
+	if validatSIPSizeResult.SizeInBytes > MAX_BYTES {
 		result.ValidationError(temporalsdk_workflow.Now(ctx), taskValidateSize, "SIP is bigger than 1 Terabyte")
 	} else {
 		taskValidateSize.Succeed(temporalsdk_workflow.Now(ctx), "SIP size checked: %s", validatSIPSizeResult.SizeHuman)
@@ -104,7 +105,7 @@ func (w *PreprocessingWorkflow) Execute(
 	}
 
 	// Bag the SIP for Enduro processing.
-	taskBagSip := result.NewTask(temporalsdk_workflow.Now(ctx), "Bag SIP")
+	taskBagSIP := result.NewTask(temporalsdk_workflow.Now(ctx), "Bag SIP")
 	var createBag bagcreate.Result
 	err = temporalsdk_workflow.ExecuteActivity(
 		withFilesystemActivityOpts(ctx),
@@ -115,10 +116,10 @@ func (w *PreprocessingWorkflow) Execute(
 	).Get(ctx, &createBag)
 	if err != nil {
 		logger.Error("System error", "message", err.Error())
-		result.SystemError(temporalsdk_workflow.Now(ctx), taskBagSip, "bagging has failed")
+		result.SystemError(temporalsdk_workflow.Now(ctx), taskBagSIP, "bagging has failed")
 		return result, nil
 	}
-	taskBagSip.Succeed(temporalsdk_workflow.Now(ctx), "SIP has been bagged")
+	taskBagSIP.Succeed(temporalsdk_workflow.Now(ctx), "SIP has been bagged")
 
 	return result, nil
 }

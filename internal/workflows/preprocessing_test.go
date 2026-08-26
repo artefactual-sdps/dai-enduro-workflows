@@ -276,7 +276,7 @@ func (s *PreprocessingTestSuite) TestSIPTooLarge() {
 	).Return(
 		&activities.CheckSIPInfoResult{
 			SizeHuman:   "1.0 TB",
-			SizeInBytes: activities.SizeTerabyte + 1,
+			SizeInBytes: workflows.MAX_BYTES + 1,
 		},
 		nil,
 	)
@@ -356,7 +356,7 @@ func (s *PreprocessingTestSuite) TestInvalidSIPName() {
 }
 
 func (s *PreprocessingTestSuite) TestSIPPayloadTooLarge() {
-	relPath := "transfer"
+	relPath := validSIPName
 
 	type test struct {
 		result  activities.CheckSIPInfoResult
@@ -427,6 +427,13 @@ func (s *PreprocessingTestSuite) TestSIPPayloadTooLarge() {
 					Outcome:      childwf.OutcomeContentError,
 					RelativePath: relPath,
 					Tasks: []*childwf.Task{
+						{
+							Name:        "Validate the SIP name",
+							Message:     "The SIP name is valid: " + validSIPName,
+							Outcome:     childwf.TaskOutcomeSuccess,
+							StartedAt:   s.env.Now().UTC(),
+							CompletedAt: s.env.Now().UTC(),
+						},
 						{
 							Name:        "Validate the SIP size",
 							Message:     "SIP size checked: 1.0 kB",
