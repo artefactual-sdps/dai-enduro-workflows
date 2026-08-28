@@ -46,6 +46,11 @@ func (s *PreprocessingTestSuite) SetupTest(cfg config.Configuration) {
 		temporalsdk_activity.RegisterOptions{Name: activities.CheckSIPInfoName},
 	)
 
+	s.env.RegisterActivityWithOptions(
+		activities.NewValidateFileAndFolder().Execute,
+		temporalsdk_activity.RegisterOptions{Name: activities.ValidateFileAndFolderName},
+	)
+
 	cfg.Preprocessing.SharedPath = sharedPath
 	s.workflow = workflows.NewPreprocessingWorkflow(cfg.Preprocessing)
 }
@@ -75,6 +80,14 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 			NumberOfFiles:       1,
 			NumberOfDirectories: 1,
 		},
+		nil,
+	)
+	s.env.OnActivity(
+		activities.ValidateFileAndFolderName,
+		sessionCtx,
+		&activities.ValidateFileAndFolderParams{Path: filepath.Join(sharedPath, relPath)},
+	).Return(
+		&activities.ValidateFileAndFolderResult{},
 		nil,
 	)
 	s.env.OnActivity(
@@ -123,6 +136,13 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 					CompletedAt: s.env.Now().UTC(),
 				},
 				{
+					Name:        "Validate file and folder names",
+					Message:     "File and folder names are valid",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
 					Name:        "Bag SIP",
 					Message:     "SIP has been bagged",
 					Outcome:     childwf.TaskOutcomeSuccess,
@@ -150,6 +170,14 @@ func (s *PreprocessingTestSuite) TestSystemError() {
 			SizeHuman:   "1.0 kB",
 			SizeInBytes: 1024,
 		},
+		nil,
+	)
+	s.env.OnActivity(
+		activities.ValidateFileAndFolderName,
+		sessionCtx,
+		&activities.ValidateFileAndFolderParams{Path: filepath.Join(sharedPath, relPath)},
+	).Return(
+		&activities.ValidateFileAndFolderResult{},
 		nil,
 	)
 	s.env.OnActivity(
@@ -196,6 +224,13 @@ func (s *PreprocessingTestSuite) TestSystemError() {
 				{
 					Name:        "Validate the SIP payload",
 					Message:     "SIP payload size checked. Files: 0 - Directories: 0",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
+					Name:        "Validate file and folder names",
+					Message:     "File and folder names are valid",
 					Outcome:     childwf.TaskOutcomeSuccess,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
@@ -314,6 +349,89 @@ func (s *PreprocessingTestSuite) TestSIPTooLarge() {
 					Name:        "Validate the SIP payload",
 					Message:     "SIP payload size checked. Files: 0 - Directories: 0",
 					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+			},
+		},
+		&result,
+	)
+}
+
+func (s *PreprocessingTestSuite) TestInvalidFileAndFolderNames() {
+	relPath := validSIPName
+	s.SetupTest(config.Configuration{})
+
+	sessionCtx := mock.AnythingOfType("*context.timerCtx")
+	s.env.OnActivity(
+		activities.CheckSIPInfoName,
+		sessionCtx,
+		&activities.CheckSIPInfoParams{Path: filepath.Join(sharedPath, relPath)},
+	).Return(
+		&activities.CheckSIPInfoResult{
+			SizeHuman:           "1.0 kB",
+			SizeInBytes:         1024,
+			NumberOfFiles:       1,
+			NumberOfDirectories: 1,
+		},
+		nil,
+	)
+	s.env.OnActivity(
+		activities.ValidateFileAndFolderName,
+		sessionCtx,
+		&activities.ValidateFileAndFolderParams{Path: filepath.Join(sharedPath, relPath)},
+	).Return(
+		&activities.ValidateFileAndFolderResult{
+			ValidationErrors: []string{
+				"bad folder has disallowed characters, allowed: a-z A-Z 0-9 dash (-) and underscore (_)",
+				"other/data has a duplicate name: data in SIP",
+			},
+		},
+		nil,
+	)
+
+	s.env.ExecuteWorkflow(
+		s.workflow.Execute,
+		&childwf.PreprocessingParams{RelativePath: relPath},
+	)
+
+	s.True(s.env.IsWorkflowCompleted())
+
+	var result childwf.PreprocessingResult
+	err := s.env.GetWorkflowResult(&result)
+	s.NoError(err)
+	s.Equal(
+		&childwf.PreprocessingResult{
+			Outcome:      childwf.OutcomeContentError,
+			RelativePath: relPath,
+			Tasks: []*childwf.Task{
+				{
+					Name:        "Validate the SIP name",
+					Message:     "The SIP name is valid: " + validSIPName,
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
+					Name:        "Validate the SIP size",
+					Message:     "SIP size checked: 1.0 kB",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
+					Name:        "Validate the SIP payload",
+					Message:     "SIP payload size checked. Files: 1 - Directories: 1",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
+					Name: "Validate file and folder names",
+					Message: "Content error: Invalid file and folder names:\n" +
+						"- bad folder has disallowed characters, allowed: a-z A-Z 0-9 dash (-) and underscore (_)\n" +
+						"- other/data has a duplicate name: data in SIP",
+					Outcome:     childwf.TaskOutcomeValidationFailure,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
 				},

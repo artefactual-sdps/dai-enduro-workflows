@@ -49,7 +49,7 @@ func (a *ValidateFileAndFolder) Execute(
 		if err != nil {
 			return err
 		}
-		// Ignore root
+		// Ignore root.
 		if relativePath == "." {
 			return nil
 		}

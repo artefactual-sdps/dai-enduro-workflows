@@ -67,6 +67,11 @@ func (m *Main) Run(ctx context.Context) error {
 		temporalsdk_activity.RegisterOptions{Name: activities.CheckSIPInfoName},
 	)
 
+	w.RegisterActivityWithOptions(
+		activities.NewValidateFileAndFolder().Execute,
+		temporalsdk_activity.RegisterOptions{Name: activities.ValidateFileAndFolderName},
+	)
+
 	if err := w.Start(); err != nil {
 		m.logger.Error(err, "Worker failed to start or fatal error during its execution.")
 		return err
