@@ -74,7 +74,7 @@ func (a *ValidateFileAndFolder) Execute(
 
 			// Folder names must be unique.
 			if _, found := uniqueNameMap[base]; found {
-				msg := fmt.Sprintf("folder name %q has a duplicate name %s in the SIP", relativePath, base)
+				msg := fmt.Sprintf("folder %q has a duplicate name %q in the SIP", relativePath, base)
 				result.ValidationErrors = append(result.ValidationErrors, msg)
 			} else {
 				uniqueNameMap[base] = struct{}{}

@@ -85,7 +85,7 @@ func TestValidateFileAndFolder(t *testing.T) {
 				).Path()
 			},
 			want: []string{
-				`folder name "other/data" has a duplicate name data in the SIP`,
+				`folder "other/data" has a duplicate name "data" in the SIP`,
 			},
 		},
 		"Errors when a relative path exceeds the character limit": {
@@ -149,7 +149,7 @@ func TestValidateFileAndFolder(t *testing.T) {
 			},
 			want: []string{
 				`"bad name" has disallowed characters, allowed: a-z A-Z 0-9 dash (-) and underscore (_)`,
-				`folder name "other/data" has a duplicate name data in the SIP`,
+				`folder "other/data" has a duplicate name "data" in the SIP`,
 			},
 		},
 		"Errors when the path does not exist": {
