@@ -15,7 +15,12 @@ import (
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/activities"
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/config"
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/sip"
-	"github.com/artefactual-sdps/dai-enduro-workflows/internal/size"
+)
+
+const (
+	MAX_FILES       = 999_999
+	MAX_DIRECTORIES = 999_999
+	MAX_BYTES       = 1_000_000_000_000 // 1 Terabyte.
 )
 
 type PreprocessingWorkflow struct {
@@ -52,28 +57,55 @@ func (w *PreprocessingWorkflow) Execute(
 	}
 	validateSIPNameTask.Succeed(temporalsdk_workflow.Now(ctx), "The SIP name is valid: %s", sipName)
 
-	task0 := result.NewTask(temporalsdk_workflow.Now(ctx), "SIP validate Size")
-	var validatSIPSizeResult activities.CheckSIPSizeResult
+	taskValidateSize := result.NewTask(temporalsdk_workflow.Now(ctx), "Validate the SIP size")
+	var validatSIPSizeResult activities.CheckSIPInfoResult
 	err := temporalsdk_workflow.ExecuteActivity(
 		withFilesystemActivityOpts(ctx),
-		activities.CheckSIPSizeName,
-		&activities.CheckSIPSizeParams{Path: sourcePath},
+		activities.CheckSIPInfoName,
+		&activities.CheckSIPInfoParams{Path: sourcePath},
 	).Get(ctx, &validatSIPSizeResult)
 	if err != nil {
 		logger.Error("System error", "message", err.Error())
-		result.SystemError(temporalsdk_workflow.Now(ctx), task0, "SIP validation has failed")
+		result.SystemError(temporalsdk_workflow.Now(ctx), taskValidateSize, "SIP validation has failed")
 		return result, nil
 	}
 
-	if validatSIPSizeResult.SizeInBytes > size.Terabyte {
-		result.ValidationError(temporalsdk_workflow.Now(ctx), task0, "SIP is bigger than 1 Terabyte")
-		return result, nil
+	if validatSIPSizeResult.SizeInBytes > MAX_BYTES {
+		result.ValidationError(temporalsdk_workflow.Now(ctx), taskValidateSize, "SIP is bigger than 1 Terabyte")
 	} else {
-		task0.Succeed(temporalsdk_workflow.Now(ctx), "SIP size checked: %s", validatSIPSizeResult.SizeHuman)
+		taskValidateSize.Succeed(temporalsdk_workflow.Now(ctx), "SIP size checked: %s", validatSIPSizeResult.SizeHuman)
+	}
+
+	{
+		// Payload size validation.
+		validationErrors := []string{}
+		taskValidatePayloadSize := result.NewTask(temporalsdk_workflow.Now(ctx), "Validate the SIP payload")
+		if validatSIPSizeResult.NumberOfFiles > MAX_FILES {
+			msg := fmt.Sprintf("SIP payload has more than %d files", MAX_FILES)
+			validationErrors = append(validationErrors, msg)
+		}
+		if validatSIPSizeResult.NumberOfDirectories > MAX_DIRECTORIES {
+			msg := fmt.Sprintf("SIP payload has more than %d directories", MAX_DIRECTORIES)
+			validationErrors = append(validationErrors, msg)
+		}
+		if len(validationErrors) > 0 {
+			msg := strings.Join(validationErrors, " - ")
+			result.ValidationError(temporalsdk_workflow.Now(ctx), taskValidatePayloadSize, msg)
+		} else {
+			taskValidatePayloadSize.Succeed(
+				temporalsdk_workflow.Now(ctx),
+				"SIP payload size checked. Files: %d - Directories: %d",
+				validatSIPSizeResult.NumberOfFiles,
+				validatSIPSizeResult.NumberOfDirectories,
+			)
+		}
+		if result.Outcome != childwf.OutcomeSuccess {
+			return result, nil
+		}
 	}
 
 	// Bag the SIP for Enduro processing.
-	task := result.NewTask(temporalsdk_workflow.Now(ctx), "Bag SIP")
+	taskBagSIP := result.NewTask(temporalsdk_workflow.Now(ctx), "Bag SIP")
 	var createBag bagcreate.Result
 	err = temporalsdk_workflow.ExecuteActivity(
 		withFilesystemActivityOpts(ctx),
@@ -84,10 +116,10 @@ func (w *PreprocessingWorkflow) Execute(
 	).Get(ctx, &createBag)
 	if err != nil {
 		logger.Error("System error", "message", err.Error())
-		result.SystemError(temporalsdk_workflow.Now(ctx), task, "bagging has failed")
+		result.SystemError(temporalsdk_workflow.Now(ctx), taskBagSIP, "bagging has failed")
 		return result, nil
 	}
-	task.Succeed(temporalsdk_workflow.Now(ctx), "SIP has been bagged")
+	taskBagSIP.Succeed(temporalsdk_workflow.Now(ctx), "SIP has been bagged")
 
 	return result, nil
 }

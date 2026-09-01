@@ -15,7 +15,6 @@ import (
 
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/activities"
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/config"
-	"github.com/artefactual-sdps/dai-enduro-workflows/internal/size"
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/workflows"
 )
 
@@ -43,8 +42,8 @@ func (s *PreprocessingTestSuite) SetupTest(cfg config.Configuration) {
 	)
 
 	s.env.RegisterActivityWithOptions(
-		activities.NewCheckSIPSize().Execute,
-		temporalsdk_activity.RegisterOptions{Name: activities.CheckSIPSizeName},
+		activities.NewCheckSIPInfo().Execute,
+		temporalsdk_activity.RegisterOptions{Name: activities.CheckSIPInfoName},
 	)
 
 	cfg.Preprocessing.SharedPath = sharedPath
@@ -66,11 +65,16 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 	// Mock activities.
 	sessionCtx := mock.AnythingOfType("*context.timerCtx")
 	s.env.OnActivity(
-		activities.CheckSIPSizeName,
+		activities.CheckSIPInfoName,
 		sessionCtx,
-		&activities.CheckSIPSizeParams{Path: filepath.Join(sharedPath, relPath)},
+		&activities.CheckSIPInfoParams{Path: filepath.Join(sharedPath, relPath)},
 	).Return(
-		&activities.CheckSIPSizeResult{SizeInBytes: 1024, SizeHuman: "1.0 kB"},
+		&activities.CheckSIPInfoResult{
+			SizeHuman:           "1.0 kB",
+			SizeInBytes:         1024,
+			NumberOfFiles:       1,
+			NumberOfDirectories: 1,
+		},
 		nil,
 	)
 	s.env.OnActivity(
@@ -105,8 +109,15 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 					CompletedAt: s.env.Now().UTC(),
 				},
 				{
-					Name:        "SIP validate Size",
+					Name:        "Validate the SIP size",
 					Message:     "SIP size checked: 1.0 kB",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
+					Name:        "Validate the SIP payload",
+					Message:     "SIP payload size checked. Files: 1 - Directories: 1",
 					Outcome:     childwf.TaskOutcomeSuccess,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
@@ -131,11 +142,14 @@ func (s *PreprocessingTestSuite) TestSystemError() {
 	// Mock activities.
 	sessionCtx := mock.AnythingOfType("*context.timerCtx")
 	s.env.OnActivity(
-		activities.CheckSIPSizeName,
+		activities.CheckSIPInfoName,
 		sessionCtx,
-		&activities.CheckSIPSizeParams{Path: filepath.Join(sharedPath, relPath)},
+		&activities.CheckSIPInfoParams{Path: filepath.Join(sharedPath, relPath)},
 	).Return(
-		&activities.CheckSIPSizeResult{SizeInBytes: 1024, SizeHuman: "1.0 kB"},
+		&activities.CheckSIPInfoResult{
+			SizeHuman:   "1.0 kB",
+			SizeInBytes: 1024,
+		},
 		nil,
 	)
 	s.env.OnActivity(
@@ -173,8 +187,15 @@ func (s *PreprocessingTestSuite) TestSystemError() {
 					CompletedAt: s.env.Now().UTC(),
 				},
 				{
-					Name:        "SIP validate Size",
+					Name:        "Validate the SIP size",
 					Message:     "SIP size checked: 1.0 kB",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
+					Name:        "Validate the SIP payload",
+					Message:     "SIP payload size checked. Files: 0 - Directories: 0",
 					Outcome:     childwf.TaskOutcomeSuccess,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
@@ -199,9 +220,9 @@ func (s *PreprocessingTestSuite) TestSIPSizeSystemError() {
 	// Mock activities.
 	sessionCtx := mock.AnythingOfType("*context.timerCtx")
 	s.env.OnActivity(
-		activities.CheckSIPSizeName,
+		activities.CheckSIPInfoName,
 		sessionCtx,
-		&activities.CheckSIPSizeParams{Path: filepath.Join(sharedPath, relPath)},
+		&activities.CheckSIPInfoParams{Path: filepath.Join(sharedPath, relPath)},
 	).Return(
 		nil,
 		fmt.Errorf("lstat %s: no such file or directory", filepath.Join(sharedPath, relPath)),
@@ -230,7 +251,7 @@ func (s *PreprocessingTestSuite) TestSIPSizeSystemError() {
 					CompletedAt: s.env.Now().UTC(),
 				},
 				{
-					Name:        "SIP validate Size",
+					Name:        "Validate the SIP size",
 					Message:     "System error: SIP validation has failed",
 					Outcome:     childwf.TaskOutcomeSystemFailure,
 					StartedAt:   s.env.Now().UTC(),
@@ -249,11 +270,14 @@ func (s *PreprocessingTestSuite) TestSIPTooLarge() {
 	// Mock activities.
 	sessionCtx := mock.AnythingOfType("*context.timerCtx")
 	s.env.OnActivity(
-		activities.CheckSIPSizeName,
+		activities.CheckSIPInfoName,
 		sessionCtx,
-		&activities.CheckSIPSizeParams{Path: filepath.Join(sharedPath, relPath)},
+		&activities.CheckSIPInfoParams{Path: filepath.Join(sharedPath, relPath)},
 	).Return(
-		&activities.CheckSIPSizeResult{SizeInBytes: size.Terabyte + 1, SizeHuman: "1.0 TB"},
+		&activities.CheckSIPInfoResult{
+			SizeHuman:   "1.0 TB",
+			SizeInBytes: workflows.MAX_BYTES + 1,
+		},
 		nil,
 	)
 
@@ -280,9 +304,16 @@ func (s *PreprocessingTestSuite) TestSIPTooLarge() {
 					CompletedAt: s.env.Now().UTC(),
 				},
 				{
-					Name:        "SIP validate Size",
+					Name:        "Validate the SIP size",
 					Message:     "Content error: SIP is bigger than 1 Terabyte",
 					Outcome:     childwf.TaskOutcomeValidationFailure,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
+					Name:        "Validate the SIP payload",
+					Message:     "SIP payload size checked. Files: 0 - Directories: 0",
+					Outcome:     childwf.TaskOutcomeSuccess,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
 				},
@@ -322,4 +353,105 @@ func (s *PreprocessingTestSuite) TestInvalidSIPName() {
 		},
 		&result,
 	)
+}
+
+func (s *PreprocessingTestSuite) TestSIPPayloadTooLarge() {
+	relPath := validSIPName
+
+	type test struct {
+		result  activities.CheckSIPInfoResult
+		message string
+	}
+
+	testCases := map[string]test{
+		"Too many files": {
+			result: activities.CheckSIPInfoResult{
+				SizeHuman:     "1.0 kB",
+				SizeInBytes:   1024,
+				NumberOfFiles: workflows.MAX_FILES + 1,
+			},
+			message: fmt.Sprintf("Content error: SIP payload has more than %d files", workflows.MAX_FILES),
+		},
+		"Too many directories": {
+			result: activities.CheckSIPInfoResult{
+				SizeHuman:           "1.0 kB",
+				SizeInBytes:         1024,
+				NumberOfDirectories: workflows.MAX_DIRECTORIES + 1,
+			},
+			message: fmt.Sprintf(
+				"Content error: SIP payload has more than %d directories",
+				workflows.MAX_DIRECTORIES,
+			),
+		},
+		"Too many files and directories": {
+			result: activities.CheckSIPInfoResult{
+				SizeHuman:           "1.0 kB",
+				SizeInBytes:         1024,
+				NumberOfFiles:       workflows.MAX_FILES + 1,
+				NumberOfDirectories: workflows.MAX_DIRECTORIES + 1,
+			},
+			message: fmt.Sprintf(
+				"Content error: SIP payload has more than %d files - SIP payload has more than %d directories",
+				workflows.MAX_FILES,
+				workflows.MAX_DIRECTORIES,
+			),
+		},
+	}
+
+	for name, tc := range testCases {
+		s.Run(name, func() {
+			s.SetupTest(config.Configuration{})
+
+			sessionCtx := mock.AnythingOfType("*context.timerCtx")
+			s.env.OnActivity(
+				activities.CheckSIPInfoName,
+				sessionCtx,
+				&activities.CheckSIPInfoParams{Path: filepath.Join(sharedPath, relPath)},
+			).Return(
+				&tc.result,
+				nil,
+			)
+
+			s.env.ExecuteWorkflow(
+				s.workflow.Execute,
+				&childwf.PreprocessingParams{RelativePath: relPath},
+			)
+
+			s.True(s.env.IsWorkflowCompleted())
+
+			var result childwf.PreprocessingResult
+			err := s.env.GetWorkflowResult(&result)
+			s.NoError(err)
+			s.Equal(
+				&childwf.PreprocessingResult{
+					Outcome:      childwf.OutcomeContentError,
+					RelativePath: relPath,
+					Tasks: []*childwf.Task{
+						{
+							Name:        "Validate the SIP name",
+							Message:     "The SIP name is valid: " + validSIPName,
+							Outcome:     childwf.TaskOutcomeSuccess,
+							StartedAt:   s.env.Now().UTC(),
+							CompletedAt: s.env.Now().UTC(),
+						},
+						{
+							Name:        "Validate the SIP size",
+							Message:     "SIP size checked: 1.0 kB",
+							Outcome:     childwf.TaskOutcomeSuccess,
+							StartedAt:   s.env.Now().UTC(),
+							CompletedAt: s.env.Now().UTC(),
+						},
+						{
+							Name:        "Validate the SIP payload",
+							Message:     tc.message,
+							Outcome:     childwf.TaskOutcomeValidationFailure,
+							StartedAt:   s.env.Now().UTC(),
+							CompletedAt: s.env.Now().UTC(),
+						},
+					},
+				},
+				&result,
+			)
+		})
+	}
 }
