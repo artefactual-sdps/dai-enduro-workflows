@@ -39,7 +39,6 @@ func (a *ValidateFileAndFolder) Execute(
 ) (*ValidateFileAndFolderResult, error) {
 	result := &ValidateFileAndFolderResult{}
 	uniqueNameMap := map[string]struct{}{}
-	failures := []string{}
 
 	err := filepath.WalkDir(params.Path, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -55,33 +54,28 @@ func (a *ValidateFileAndFolder) Execute(
 		}
 
 		if utf8.RuneCountInString(relativePath) > MAX_FILE_PATH_LENGTH {
-			msg := fmt.Sprintf("%s has more than: %d characters", relativePath, MAX_FILE_PATH_LENGTH)
-			failures = append(failures, msg)
+			msg := fmt.Sprintf("%q has more than %d characters", relativePath, MAX_FILE_PATH_LENGTH)
+			result.ValidationErrors = append(result.ValidationErrors, msg)
 		}
-		if strings.Count(relativePath, "/") > MAX_NESTED_FOLDERS {
-			msg := fmt.Sprintf("%s exceeds the allowed nested folder limit of '%d'", relativePath, MAX_NESTED_FOLDERS)
-			failures = append(failures, msg)
-		}
-
-		info, err := d.Info()
-		if err != nil {
-			return err
+		if strings.Count(relativePath, string(filepath.Separator)) > MAX_NESTED_FOLDERS {
+			msg := fmt.Sprintf("%q exceeds the allowed nested folder limit of %d", relativePath, MAX_NESTED_FOLDERS)
+			result.ValidationErrors = append(result.ValidationErrors, msg)
 		}
 
 		base := filepath.Base(path)
-		if info.IsDir() {
+		if d.IsDir() {
 			if !FolderNameAllowedCharacters.MatchString(base) {
 				msg := fmt.Sprintf(
-					"%s has disallowed characters, allowed: a-z A-Z 0-9 dash (-) and underscore (_)",
+					"%q has disallowed characters, allowed: a-z A-Z 0-9 dash (-) and underscore (_)",
 					base,
 				)
-				failures = append(failures, msg)
+				result.ValidationErrors = append(result.ValidationErrors, msg)
 			}
 
 			// Folder names must be unique.
 			if _, found := uniqueNameMap[base]; found {
-				msg := fmt.Sprintf("%s has a duplicate name: %s in SIP", relativePath, base)
-				failures = append(failures, msg)
+				msg := fmt.Sprintf("folder name %q has a duplicate name %s in the SIP", relativePath, base)
+				result.ValidationErrors = append(result.ValidationErrors, msg)
 			} else {
 				uniqueNameMap[base] = struct{}{}
 			}
@@ -93,6 +87,5 @@ func (a *ValidateFileAndFolder) Execute(
 		return nil, err
 	}
 
-	result.ValidationErrors = failures
 	return result, nil
 }

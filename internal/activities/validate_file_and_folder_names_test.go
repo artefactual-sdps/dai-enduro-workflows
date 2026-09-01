@@ -1,7 +1,7 @@
 package activities_test
 
 import (
-	"context"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -54,7 +54,7 @@ func TestValidateFileAndFolder(t *testing.T) {
 				).Path()
 			},
 			want: []string{
-				"bad folder has disallowed characters, allowed: a-z A-Z 0-9 dash (-) and underscore (_)",
+				`"bad folder" has disallowed characters, allowed: a-z A-Z 0-9 dash (-) and underscore (_)`,
 			},
 		},
 		"Errors when a folder name contains a dot": {
@@ -67,7 +67,7 @@ func TestValidateFileAndFolder(t *testing.T) {
 				).Path()
 			},
 			want: []string{
-				"data.dir has disallowed characters, allowed: a-z A-Z 0-9 dash (-) and underscore (_)",
+				`"data.dir" has disallowed characters, allowed: a-z A-Z 0-9 dash (-) and underscore (_)`,
 			},
 		},
 		"Errors when two folders share the same name": {
@@ -85,7 +85,7 @@ func TestValidateFileAndFolder(t *testing.T) {
 				).Path()
 			},
 			want: []string{
-				"other/data has a duplicate name: data in SIP",
+				`folder name "other/data" has a duplicate name data in the SIP`,
 			},
 		},
 		"Errors when a relative path exceeds the character limit": {
@@ -97,7 +97,11 @@ func TestValidateFileAndFolder(t *testing.T) {
 				).Path()
 			},
 			want: []string{
-				strings.Repeat("a", activities.MAX_FILE_PATH_LENGTH+1) + " has more than: 230 characters",
+				fmt.Sprintf(
+					"%q has more than %d characters",
+					strings.Repeat("a", activities.MAX_FILE_PATH_LENGTH+1),
+					activities.MAX_FILE_PATH_LENGTH,
+				),
 			},
 		},
 		"Errors when nested folders exceed the limit": {
@@ -122,8 +126,8 @@ func TestValidateFileAndFolder(t *testing.T) {
 				).Path()
 			},
 			want: []string{
-				"a/b/c/d/e/f/g exceeds the allowed nested folder limit of '5'",
-				"a/b/c/d/e/f/g/deep.txt exceeds the allowed nested folder limit of '5'",
+				`"a/b/c/d/e/f/g" exceeds the allowed nested folder limit of 5`,
+				`"a/b/c/d/e/f/g/deep.txt" exceeds the allowed nested folder limit of 5`,
 			},
 		},
 		"Collects multiple validation errors": {
@@ -144,8 +148,8 @@ func TestValidateFileAndFolder(t *testing.T) {
 				).Path()
 			},
 			want: []string{
-				"bad name has disallowed characters, allowed: a-z A-Z 0-9 dash (-) and underscore (_)",
-				"other/data has a duplicate name: data in SIP",
+				`"bad name" has disallowed characters, allowed: a-z A-Z 0-9 dash (-) and underscore (_)`,
+				`folder name "other/data" has a duplicate name data in the SIP`,
 			},
 		},
 		"Errors when the path does not exist": {
@@ -161,7 +165,7 @@ func TestValidateFileAndFolder(t *testing.T) {
 			t.Parallel()
 
 			act := activities.NewValidateFileAndFolder()
-			got, err := act.Execute(context.Background(), &activities.ValidateFileAndFolderParams{
+			got, err := act.Execute(t.Context(), &activities.ValidateFileAndFolderParams{
 				Path: tc.setup(t),
 			})
 			if tc.wantErr != "" {
@@ -170,11 +174,6 @@ func TestValidateFileAndFolder(t *testing.T) {
 			}
 
 			assert.NilError(t, err)
-			if len(tc.want) == 0 {
-				assert.Equal(t, 0, len(got.ValidationErrors))
-				return
-			}
-
 			assert.DeepEqual(t, got.ValidationErrors, tc.want)
 		})
 	}
