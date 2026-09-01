@@ -104,6 +104,32 @@ func (w *PreprocessingWorkflow) Execute(
 		}
 	}
 
+	validateFileAndFolderNamesTask := result.NewTask(temporalsdk_workflow.Now(ctx), "Validate file and folder names")
+	var validateFileAndFolderResult activities.ValidateFileAndFolderResult
+	err = temporalsdk_workflow.ExecuteActivity(
+		withFilesystemActivityOpts(ctx),
+		activities.ValidateFileAndFolderName,
+		&activities.ValidateFileAndFolderParams{Path: sourcePath},
+	).Get(ctx, &validateFileAndFolderResult)
+	if err != nil {
+		logger.Error("System error", "message", err.Error())
+		result.SystemError(
+			temporalsdk_workflow.Now(ctx),
+			validateFileAndFolderNamesTask,
+			"file and folder name validation has failed",
+		)
+		return result, nil
+	}
+	if len(validateFileAndFolderResult.ValidationErrors) > 0 {
+		result.ValidationError(
+			temporalsdk_workflow.Now(ctx),
+			validateFileAndFolderNamesTask,
+			fmt.Sprintf("Invalid file and folder names:\n%s", ul(validateFileAndFolderResult.ValidationErrors)),
+		)
+		return result, nil
+	}
+	validateFileAndFolderNamesTask.Succeed(temporalsdk_workflow.Now(ctx), "File and folder names are valid")
+
 	// Bag the SIP for Enduro processing.
 	taskBagSIP := result.NewTask(temporalsdk_workflow.Now(ctx), "Bag SIP")
 	var createBag bagcreate.Result

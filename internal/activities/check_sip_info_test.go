@@ -1,7 +1,6 @@
 package activities_test
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -86,7 +85,7 @@ func TestCheckSIPInfo(t *testing.T) {
 			t.Parallel()
 
 			got, err := activities.NewCheckSIPInfo().Execute(
-				context.Background(),
+				t.Context(),
 				&activities.CheckSIPInfoParams{Path: tc.setup(t)},
 			)
 			if tc.wantErr != "" {
@@ -115,7 +114,7 @@ func TestCheckSIPInfoPermissionDenied(t *testing.T) {
 	})
 
 	_, err := activities.NewCheckSIPInfo().Execute(
-		context.Background(),
+		t.Context(),
 		&activities.CheckSIPInfoParams{Path: locked},
 	)
 	assert.ErrorContains(t, err, "permission denied")
