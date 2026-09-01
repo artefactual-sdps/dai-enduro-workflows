@@ -149,6 +149,32 @@ func (w *PreprocessingWorkflow) Execute(
 	}
 	validateFileAndFolderNamesTask.Succeed(temporalsdk_workflow.Now(ctx), "File and folder names are valid")
 
+	validateSIPStructureTask := result.NewTask(temporalsdk_workflow.Now(ctx), "Validate the SIP structure")
+	var validateSIPStructureResult activities.ValidateSIPStructureResult
+	err = temporalsdk_workflow.ExecuteActivity(
+		withFilesystemActivityOpts(ctx),
+		activities.ValidateSIPStructureName,
+		&activities.ValidateSIPStructureParams{Path: sourcePath},
+	).Get(ctx, &validateSIPStructureResult)
+	if err != nil {
+		logger.Error("System error", "message", err.Error())
+		result.SystemError(
+			temporalsdk_workflow.Now(ctx),
+			validateSIPStructureTask,
+			"SIP structure validation has failed",
+		)
+		return result, nil
+	}
+	if len(validateSIPStructureResult.ValidationErrors) > 0 {
+		result.ValidationError(
+			temporalsdk_workflow.Now(ctx),
+			validateSIPStructureTask,
+			fmt.Sprintf("Invalid SIP structure:\n%s", ul(validateSIPStructureResult.ValidationErrors)),
+		)
+		return result, nil
+	}
+	validateSIPStructureTask.Succeed(temporalsdk_workflow.Now(ctx), "The SIP structure is valid")
+
 	// Bag the SIP for Enduro processing.
 	taskBagSIP := result.NewTask(temporalsdk_workflow.Now(ctx), "Bag SIP")
 	var createBag bagcreate.Result

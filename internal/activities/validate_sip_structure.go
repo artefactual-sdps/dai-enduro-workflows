@@ -1,0 +1,126 @@
+package activities
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"io/fs"
+	"os"
+	"unicode/utf8"
+
+	"go.artefactual.dev/tools/temporal"
+)
+
+const ValidateSIPStructureName = "validate-sip-structure"
+
+type ValidateSIPStructureParams struct {
+	Path string
+}
+
+type ValidateSIPStructureResult struct {
+	MetadataDirectoryPath string
+	ValidationErrors      []string
+}
+
+type ValidateSIPStructure struct{}
+
+func NewValidateSIPStructure() *ValidateSIPStructure {
+	return &ValidateSIPStructure{}
+}
+
+func (a *ValidateSIPStructure) Execute(
+	ctx context.Context,
+	params *ValidateSIPStructureParams,
+) (*ValidateSIPStructureResult, error) {
+	if params == nil || params.Path == "" {
+		return nil, temporal.NewNonRetryableError(errors.New("path cannot be empty"))
+	}
+
+	logger := temporal.GetLogger(ctx)
+	result := &ValidateSIPStructureResult{}
+
+	// Using root prevents: G122 — TOCTOU / symlink race (CWE-367).
+	root, err := os.OpenRoot(params.Path)
+	if err != nil {
+		return nil, err
+	}
+	defer root.Close()
+	fsys := root.FS()
+
+	hasMetadataDirectory, err := dirContains(fsys, ".", "metadata")
+	if err != nil {
+		return nil, err
+	}
+	if !hasMetadataDirectory {
+		result.ValidationErrors = append(result.ValidationErrors, "SIP Must include a top-level metadata directory")
+	} else {
+		hasReadme, err := dirContains(fsys, "metadata", "README.md")
+		if err != nil {
+			return nil, err
+		}
+		if !hasReadme {
+			result.ValidationErrors = append(
+				result.ValidationErrors,
+				"Metadata directory must include a README.md file",
+			)
+		}
+	}
+
+	err = fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if d.IsDir() {
+			isEmpty, err := isDirEmpty(fsys, path)
+			if err != nil {
+				return err
+			}
+			// SIP must NOT include empty directories.
+			if isEmpty {
+				result.ValidationErrors = append(result.ValidationErrors, fmt.Sprintf("folder %q is empty", path))
+			}
+		} else {
+			raw, err := root.ReadFile(path)
+			if err != nil {
+				logger.Error(err, fmt.Sprintf("Failed to validate UTF-8 for %q", path))
+				return err
+			}
+			// All files MUST be Unicode Transformation Format - 8 bits (UTF-8) encoded.
+			if !utf8.Valid(raw) {
+				msg := fmt.Sprintf("Files MUST be UTF-8 encoded, %q is not", path)
+				result.ValidationErrors = append(result.ValidationErrors, msg)
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// dirContains reports whether dir contains a top-level entry with the given name.
+func dirContains(fsys fs.FS, dir, name string) (bool, error) {
+	topLevelEntries, err := fs.ReadDir(fsys, dir)
+	if err != nil {
+		return false, err
+	}
+	for _, entry := range topLevelEntries {
+		if entry.Name() == name {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+func isDirEmpty(fsys fs.FS, path string) (bool, error) {
+	entries, err := fs.ReadDir(fsys, path)
+	if err != nil {
+		return false, err
+	}
+	return len(entries) == 0, nil
+}
