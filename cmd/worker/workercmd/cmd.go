@@ -78,6 +78,11 @@ func (m *Main) Run(ctx context.Context) error {
 		temporalsdk_activity.RegisterOptions{Name: activities.ValidateFileAndFolderName},
 	)
 
+	w.RegisterActivityWithOptions(
+		activities.NewValidateSIPStructure().Execute,
+		temporalsdk_activity.RegisterOptions{Name: activities.ValidateSIPStructureName},
+	)
+
 	if err := w.Start(); err != nil {
 		m.logger.Error(err, "Worker failed to start or fatal error during its execution.")
 		return err

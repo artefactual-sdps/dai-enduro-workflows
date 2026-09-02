@@ -56,6 +56,11 @@ func (s *PreprocessingTestSuite) SetupTest(cfg config.Configuration) {
 		temporalsdk_activity.RegisterOptions{Name: activities.ValidateFileAndFolderName},
 	)
 
+	s.env.RegisterActivityWithOptions(
+		activities.NewValidateSIPStructure().Execute,
+		temporalsdk_activity.RegisterOptions{Name: activities.ValidateSIPStructureName},
+	)
+
 	cfg.Preprocessing.SharedPath = sharedPath
 	s.workflow = workflows.NewPreprocessingWorkflow(cfg.Preprocessing)
 }
@@ -102,6 +107,14 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 		&activities.ValidateFileAndFolderParams{Path: filepath.Join(sharedPath, relPath)},
 	).Return(
 		&activities.ValidateFileAndFolderResult{},
+		nil,
+	)
+	s.env.OnActivity(
+		activities.ValidateSIPStructureName,
+		sessionCtx,
+		&activities.ValidateSIPStructureParams{Path: filepath.Join(sharedPath, relPath)},
+	).Return(
+		&activities.ValidateSIPStructureResult{},
 		nil,
 	)
 	s.env.OnActivity(
@@ -164,6 +177,13 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 					CompletedAt: s.env.Now().UTC(),
 				},
 				{
+					Name:        "Validate the SIP structure",
+					Message:     "The SIP structure is valid",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
 					Name:        "Bag SIP",
 					Message:     "SIP has been bagged",
 					Outcome:     childwf.TaskOutcomeSuccess,
@@ -208,6 +228,14 @@ func (s *PreprocessingTestSuite) TestSystemError() {
 		&activities.ValidateFileAndFolderParams{Path: filepath.Join(sharedPath, relPath)},
 	).Return(
 		&activities.ValidateFileAndFolderResult{},
+		nil,
+	)
+	s.env.OnActivity(
+		activities.ValidateSIPStructureName,
+		sessionCtx,
+		&activities.ValidateSIPStructureParams{Path: filepath.Join(sharedPath, relPath)},
+	).Return(
+		&activities.ValidateSIPStructureResult{},
 		nil,
 	)
 	s.env.OnActivity(
@@ -268,6 +296,13 @@ func (s *PreprocessingTestSuite) TestSystemError() {
 				{
 					Name:        "Validate file and folder names",
 					Message:     "File and folder names are valid",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
+					Name:        "Validate the SIP structure",
+					Message:     "The SIP structure is valid",
 					Outcome:     childwf.TaskOutcomeSuccess,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
@@ -352,7 +387,7 @@ func (s *PreprocessingTestSuite) TestSIPSizeSystemError() {
 }
 
 func (s *PreprocessingTestSuite) TestSIPTooLarge() {
-	relPath := validSIPName
+	relPath := "transfer"
 	s.SetupTest(config.Configuration{})
 
 	// Mock activities.
@@ -403,8 +438,8 @@ func (s *PreprocessingTestSuite) TestSIPTooLarge() {
 				},
 				{
 					Name:        "Validate the SIP name",
-					Message:     "The SIP name is valid: " + validSIPName,
-					Outcome:     childwf.TaskOutcomeSuccess,
+					Message:     "Content error: Invalid SIP name 'transfer':\n- expected 4 sections divided by '_', got: 1",
+					Outcome:     childwf.TaskOutcomeValidationFailure,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
 				},
@@ -428,8 +463,8 @@ func (s *PreprocessingTestSuite) TestSIPTooLarge() {
 	)
 }
 
-func (s *PreprocessingTestSuite) TestInvalidFileAndFolderNames() {
-	relPath := validSIPName
+func (s *PreprocessingTestSuite) TestInvalidFileAndFolderAndStructure() {
+	relPath := "transfer"
 	s.SetupTest(config.Configuration{})
 
 	sessionCtx := mock.AnythingOfType("*context.timerCtx")
@@ -468,77 +503,14 @@ func (s *PreprocessingTestSuite) TestInvalidFileAndFolderNames() {
 		},
 		nil,
 	)
-
-	s.env.ExecuteWorkflow(
-		s.workflow.Execute,
-		&childwf.PreprocessingParams{RelativePath: relPath},
-	)
-
-	s.True(s.env.IsWorkflowCompleted())
-
-	var result childwf.PreprocessingResult
-	err := s.env.GetWorkflowResult(&result)
-	s.NoError(err)
-	s.Equal(
-		&childwf.PreprocessingResult{
-			Outcome:      childwf.OutcomeContentError,
-			RelativePath: relPath,
-			Tasks: []*childwf.Task{
-				{
-					Name:        "Extract the SIP bag",
-					Message:     "The SIP bag was extracted.",
-					Outcome:     childwf.TaskOutcomeSuccess,
-					StartedAt:   s.env.Now().UTC(),
-					CompletedAt: s.env.Now().UTC(),
-				},
-				{
-					Name:        "Validate the SIP name",
-					Message:     "The SIP name is valid: " + validSIPName,
-					Outcome:     childwf.TaskOutcomeSuccess,
-					StartedAt:   s.env.Now().UTC(),
-					CompletedAt: s.env.Now().UTC(),
-				},
-				{
-					Name:        "Validate the SIP size",
-					Message:     "SIP size checked: 1.0 kB",
-					Outcome:     childwf.TaskOutcomeSuccess,
-					StartedAt:   s.env.Now().UTC(),
-					CompletedAt: s.env.Now().UTC(),
-				},
-				{
-					Name:        "Validate the SIP payload",
-					Message:     "SIP payload size checked. Files: 1 - Directories: 1",
-					Outcome:     childwf.TaskOutcomeSuccess,
-					StartedAt:   s.env.Now().UTC(),
-					CompletedAt: s.env.Now().UTC(),
-				},
-				{
-					Name: "Validate file and folder names",
-					Message: "Content error: Invalid file and folder names:\n" +
-						"- \"bad folder\" has disallowed characters, allowed: a-z A-Z 0-9 dash (-) and underscore (_)\n" +
-						"- folder \"other/data\" has a duplicate name \"data\" in the SIP",
-					Outcome:     childwf.TaskOutcomeValidationFailure,
-					StartedAt:   s.env.Now().UTC(),
-					CompletedAt: s.env.Now().UTC(),
-				},
-			},
-		},
-		&result,
-	)
-}
-
-func (s *PreprocessingTestSuite) TestInvalidSIPName() {
-	relPath := "transfer"
-	s.SetupTest(config.Configuration{})
-
-	sessionCtx := mock.AnythingOfType("*context.timerCtx")
-	srcPath := filepath.Join(sharedPath, relPath)
 	s.env.OnActivity(
-		bagextract.Name,
+		activities.ValidateSIPStructureName,
 		sessionCtx,
-		&bagextract.Params{Path: srcPath, Keep: []string{"metadata"}},
+		&activities.ValidateSIPStructureParams{Path: srcPath},
 	).Return(
-		&bagextract.Result{Path: srcPath},
+		&activities.ValidateSIPStructureResult{
+			ValidationErrors: []string{"SIP Must include a top-level metadata directory"},
+		},
 		nil,
 	)
 
@@ -567,6 +539,36 @@ func (s *PreprocessingTestSuite) TestInvalidSIPName() {
 				{
 					Name:        "Validate the SIP name",
 					Message:     "Content error: Invalid SIP name 'transfer':\n- expected 4 sections divided by '_', got: 1",
+					Outcome:     childwf.TaskOutcomeValidationFailure,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
+					Name:        "Validate the SIP size",
+					Message:     "SIP size checked: 1.0 kB",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
+					Name:        "Validate the SIP payload",
+					Message:     "SIP payload size checked. Files: 1 - Directories: 1",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
+					Name: "Validate file and folder names",
+					Message: "Content error: Invalid file and folder names:\n" +
+						"- \"bad folder\" has disallowed characters, allowed: a-z A-Z 0-9 dash (-) and underscore (_)\n" +
+						"- folder \"other/data\" has a duplicate name \"data\" in the SIP",
+					Outcome:     childwf.TaskOutcomeValidationFailure,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
+					Name:        "Validate the SIP structure",
+					Message:     "Content error: Invalid SIP structure:\n- SIP Must include a top-level metadata directory",
 					Outcome:     childwf.TaskOutcomeValidationFailure,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
