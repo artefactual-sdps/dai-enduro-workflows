@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/artefactual-sdps/temporal-activities/bagcreate"
+	"github.com/artefactual-sdps/temporal-activities/ffvalidate"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/fs"
 
@@ -24,6 +25,8 @@ workflowName = "preprocessing"
 sharedPath = "/home/enduro/shared"
 [preprocessing.bagCreate]
 checksumAlgorithm = "md5"
+[preprocessing.fileFormat]
+allowlistPath = "/home/enduro/.config/allowed_file_formats.csv"
 `
 
 func TestConfig(t *testing.T) {
@@ -61,6 +64,9 @@ func TestConfig(t *testing.T) {
 					SharedPath:   "/home/enduro/shared",
 					BagCreate: bagcreate.Config{
 						ChecksumAlgorithm: "md5",
+					},
+					FileFormatsPath: ffvalidate.Config{
+						AllowlistPath: "/home/enduro/.config/allowed_file_formats.csv",
 					},
 				},
 			},
@@ -109,6 +115,25 @@ checksumAlgorithm = "unknown"
 			wantFound: true,
 			wantErr: `invalid configuration
 Preprocessing.BagCreate: ChecksumAlgorithm: invalid value "unknown", must be one of (md5, sha1, sha256, sha512)`,
+		},
+		{
+			name:       "Errors when file format allowlist and disallowlist are both configured",
+			configFile: "dai-enduro-worker.toml",
+			toml: `# Config
+[temporal]
+address = "host:port"
+[worker]
+taskQueue = "dai-enduro"
+[preprocessing]
+workflowName = "preprocessing"
+sharedPath = "/home/enduro/shared"
+[preprocessing.fileFormat]
+allowlistPath = "/home/enduro/.config/allowed_file_formats.csv"
+disallowlistPath = "/home/enduro/.config/disallowed_file_formats.csv"
+`,
+			wantFound: true,
+			wantErr: `invalid configuration
+Preprocessing.FileFormat: AllowlistPath and DisallowlistPath cannot both be set`,
 		},
 		{
 			name:       "Errors when TOML is invalid",

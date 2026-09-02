@@ -1,0 +1,20 @@
+debug = true
+verbosity = 2
+
+[temporal]
+address = "temporal-frontend.enduro-sdps:7233"
+namespace = "default"
+
+[worker]
+taskQueue = "dai-enduro"
+maxConcurrentSessions = 1
+
+[preprocessing]
+workflowName = "preprocessing"
+sharedPath = "/home/enduro/shared"
+
+[preprocessing.bagCreate]
+checksumAlgorithm = "sha512"
+
+[preprocessing.fileFormat]
+allowlistPath = "/home/enduro/.config/allowed_file_formats.csv"

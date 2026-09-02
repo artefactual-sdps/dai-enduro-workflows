@@ -5,6 +5,7 @@ import (
 
 	"github.com/artefactual-sdps/temporal-activities/bagcreate"
 	"github.com/artefactual-sdps/temporal-activities/bagextract"
+	"github.com/artefactual-sdps/temporal-activities/ffvalidate"
 	"github.com/go-logr/logr"
 	"go.artefactual.dev/tools/temporal"
 	temporalsdk_activity "go.temporal.io/sdk/activity"
@@ -81,6 +82,11 @@ func (m *Main) Run(ctx context.Context) error {
 	w.RegisterActivityWithOptions(
 		activities.NewValidateSIPStructure().Execute,
 		temporalsdk_activity.RegisterOptions{Name: activities.ValidateSIPStructureName},
+	)
+
+	w.RegisterActivityWithOptions(
+		ffvalidate.New(m.cfg.Preprocessing.FileFormatsPath).Execute,
+		temporalsdk_activity.RegisterOptions{Name: ffvalidate.Name},
 	)
 
 	if err := w.Start(); err != nil {

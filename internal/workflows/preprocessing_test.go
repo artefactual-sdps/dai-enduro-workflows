@@ -8,6 +8,7 @@ import (
 	"github.com/artefactual-sdps/enduro/pkg/childwf"
 	"github.com/artefactual-sdps/temporal-activities/bagcreate"
 	"github.com/artefactual-sdps/temporal-activities/bagextract"
+	"github.com/artefactual-sdps/temporal-activities/ffvalidate"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	temporalsdk_activity "go.temporal.io/sdk/activity"
@@ -59,6 +60,11 @@ func (s *PreprocessingTestSuite) SetupTest(cfg config.Configuration) {
 	s.env.RegisterActivityWithOptions(
 		activities.NewValidateSIPStructure().Execute,
 		temporalsdk_activity.RegisterOptions{Name: activities.ValidateSIPStructureName},
+	)
+
+	s.env.RegisterActivityWithOptions(
+		ffvalidate.New(cfg.Preprocessing.FileFormatsPath).Execute,
+		temporalsdk_activity.RegisterOptions{Name: ffvalidate.Name},
 	)
 
 	cfg.Preprocessing.SharedPath = sharedPath
@@ -115,6 +121,14 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 		&activities.ValidateSIPStructureParams{Path: filepath.Join(sharedPath, relPath)},
 	).Return(
 		&activities.ValidateSIPStructureResult{},
+		nil,
+	)
+	s.env.OnActivity(
+		ffvalidate.Name,
+		sessionCtx,
+		&ffvalidate.Params{Path: srcPath},
+	).Return(
+		&ffvalidate.Result{},
 		nil,
 	)
 	s.env.OnActivity(
@@ -184,6 +198,13 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 					CompletedAt: s.env.Now().UTC(),
 				},
 				{
+					Name:        "Validate file formats",
+					Message:     "File formats are valid",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
 					Name:        "Bag SIP",
 					Message:     "SIP has been bagged",
 					Outcome:     childwf.TaskOutcomeSuccess,
@@ -236,6 +257,14 @@ func (s *PreprocessingTestSuite) TestSystemError() {
 		&activities.ValidateSIPStructureParams{Path: filepath.Join(sharedPath, relPath)},
 	).Return(
 		&activities.ValidateSIPStructureResult{},
+		nil,
+	)
+	s.env.OnActivity(
+		ffvalidate.Name,
+		sessionCtx,
+		&ffvalidate.Params{Path: srcPath},
+	).Return(
+		&ffvalidate.Result{},
 		nil,
 	)
 	s.env.OnActivity(
@@ -303,6 +332,13 @@ func (s *PreprocessingTestSuite) TestSystemError() {
 				{
 					Name:        "Validate the SIP structure",
 					Message:     "The SIP structure is valid",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
+					Name:        "Validate file formats",
+					Message:     "File formats are valid",
 					Outcome:     childwf.TaskOutcomeSuccess,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
@@ -569,6 +605,130 @@ func (s *PreprocessingTestSuite) TestInvalidFileAndFolderAndStructure() {
 				{
 					Name:        "Validate the SIP structure",
 					Message:     "Content error: Invalid SIP structure:\n- SIP Must include a top-level metadata directory",
+					Outcome:     childwf.TaskOutcomeValidationFailure,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+			},
+		},
+		&result,
+	)
+}
+
+func (s *PreprocessingTestSuite) TestInvalidFileFormats() {
+	relPath := validSIPName
+	s.SetupTest(config.Configuration{})
+
+	sessionCtx := mock.AnythingOfType("*context.timerCtx")
+	srcPath := filepath.Join(sharedPath, relPath)
+	s.env.OnActivity(
+		bagextract.Name,
+		sessionCtx,
+		&bagextract.Params{Path: srcPath, Keep: []string{"metadata"}},
+	).Return(
+		&bagextract.Result{Path: srcPath},
+		nil,
+	)
+	s.env.OnActivity(
+		activities.CheckSIPInfoName,
+		sessionCtx,
+		&activities.CheckSIPInfoParams{Path: srcPath},
+	).Return(
+		&activities.CheckSIPInfoResult{
+			SizeHuman:           "1.0 kB",
+			SizeInBytes:         1024,
+			NumberOfFiles:       1,
+			NumberOfDirectories: 1,
+		},
+		nil,
+	)
+	s.env.OnActivity(
+		activities.ValidateFileAndFolderName,
+		sessionCtx,
+		&activities.ValidateFileAndFolderParams{Path: srcPath},
+	).Return(
+		&activities.ValidateFileAndFolderResult{},
+		nil,
+	)
+	s.env.OnActivity(
+		activities.ValidateSIPStructureName,
+		sessionCtx,
+		&activities.ValidateSIPStructureParams{Path: srcPath},
+	).Return(
+		&activities.ValidateSIPStructureResult{},
+		nil,
+	)
+	s.env.OnActivity(
+		ffvalidate.Name,
+		sessionCtx,
+		&ffvalidate.Params{Path: srcPath},
+	).Return(
+		&ffvalidate.Result{
+			Failures: []string{`file format "fmt/11" not allowed: "payload.bin"`},
+		},
+		nil,
+	)
+
+	s.env.ExecuteWorkflow(
+		s.workflow.Execute,
+		&childwf.PreprocessingParams{RelativePath: relPath},
+	)
+
+	s.True(s.env.IsWorkflowCompleted())
+
+	var result childwf.PreprocessingResult
+	err := s.env.GetWorkflowResult(&result)
+	s.NoError(err)
+	s.Equal(
+		&childwf.PreprocessingResult{
+			Outcome:      childwf.OutcomeContentError,
+			RelativePath: relPath,
+			Tasks: []*childwf.Task{
+				{
+					Name:        "Extract the SIP bag",
+					Message:     "The SIP bag was extracted.",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
+					Name:        "Validate the SIP name",
+					Message:     "The SIP name is valid: " + validSIPName,
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
+					Name:        "Validate the SIP size",
+					Message:     "SIP size checked: 1.0 kB",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
+					Name:        "Validate the SIP payload",
+					Message:     "SIP payload size checked. Files: 1 - Directories: 1",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
+					Name:        "Validate file and folder names",
+					Message:     "File and folder names are valid",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
+					Name:        "Validate the SIP structure",
+					Message:     "The SIP structure is valid",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
+					Name:        "Validate file formats",
+					Message:     "Content error: Invalid file formats:\n- file format \"fmt/11\" not allowed: \"payload.bin\"",
 					Outcome:     childwf.TaskOutcomeValidationFailure,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
