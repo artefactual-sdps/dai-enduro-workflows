@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"unicode/utf8"
 
 	"go.artefactual.dev/tools/temporal"
@@ -48,20 +49,16 @@ func (a *ValidateSIPStructure) Execute(
 
 	hasReadme := false
 	hasMetadataDirectory := false
+	dirs := []string{}
+	nonEmptyDirs := map[string]struct{}{}
 	err = fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
+		nonEmptyDirs[filepath.Dir(path)] = struct{}{}
 
 		if d.IsDir() {
-			isEmpty, err := isDirEmpty(fsys, path)
-			if err != nil {
-				return err
-			}
-			// SIP must NOT include empty directories.
-			if isEmpty {
-				result.ValidationErrors = append(result.ValidationErrors, fmt.Sprintf("folder %q is empty", path))
-			}
+			dirs = append(dirs, path)
 
 			// If the path equals to "metadata" it means it's located at the root of the Folder.
 			if path == "metadata" {
@@ -94,14 +91,14 @@ func (a *ValidateSIPStructure) Execute(
 	} else if !hasReadme {
 		result.ValidationErrors = append(result.ValidationErrors, "Metadata directory must include a README.md file")
 	}
+	for _, dir := range dirs {
+		if dir == "." {
+			continue // SIP root is not a "folder in the SIP"
+		}
+		if _, found := nonEmptyDirs[dir]; !found {
+			result.ValidationErrors = append(result.ValidationErrors, fmt.Sprintf("folder %q is empty", dir))
+		}
+	}
 
 	return result, nil
-}
-
-func isDirEmpty(fsys fs.FS, path string) (bool, error) {
-	entries, err := fs.ReadDir(fsys, path)
-	if err != nil {
-		return false, err
-	}
-	return len(entries) == 0, nil
 }

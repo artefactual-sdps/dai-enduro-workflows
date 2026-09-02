@@ -87,8 +87,8 @@ func TestValidateSIPStructure(t *testing.T) {
 			},
 			want: func(string) []string {
 				return []string{
-					`folder "metadata" is empty`,
 					"Metadata directory must include a README.md file",
+					`folder "metadata" is empty`,
 				}
 			},
 		},
@@ -137,8 +137,8 @@ func TestValidateSIPStructure(t *testing.T) {
 			want: func(string) []string {
 				return []string{
 					fmt.Sprintf("Files MUST be UTF-8 encoded, %q is not", "bad.bin"),
-					`folder "not_empty/empty_dir" is empty`,
 					"SIP Must include a top-level metadata directory",
+					`folder "not_empty/empty_dir" is empty`,
 				}
 			},
 		},
