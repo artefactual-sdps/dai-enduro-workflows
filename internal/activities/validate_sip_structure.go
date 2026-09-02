@@ -18,8 +18,7 @@ type ValidateSIPStructureParams struct {
 }
 
 type ValidateSIPStructureResult struct {
-	MetadataDirectoryPath string
-	ValidationErrors      []string
+	ValidationErrors []string
 }
 
 type ValidateSIPStructure struct{}
@@ -47,25 +46,8 @@ func (a *ValidateSIPStructure) Execute(
 	defer root.Close()
 	fsys := root.FS()
 
-	hasMetadataDirectory, err := dirContains(fsys, ".", "metadata")
-	if err != nil {
-		return nil, err
-	}
-	if !hasMetadataDirectory {
-		result.ValidationErrors = append(result.ValidationErrors, "SIP Must include a top-level metadata directory")
-	} else {
-		hasReadme, err := dirContains(fsys, "metadata", "README.md")
-		if err != nil {
-			return nil, err
-		}
-		if !hasReadme {
-			result.ValidationErrors = append(
-				result.ValidationErrors,
-				"Metadata directory must include a README.md file",
-			)
-		}
-	}
-
+	hasReadme := false
+	hasMetadataDirectory := false
 	err = fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -80,6 +62,11 @@ func (a *ValidateSIPStructure) Execute(
 			if isEmpty {
 				result.ValidationErrors = append(result.ValidationErrors, fmt.Sprintf("folder %q is empty", path))
 			}
+
+			// If the path equals to "metadata" it means it's located at the root of the Folder.
+			if path == "metadata" {
+				hasMetadataDirectory = true
+			}
 		} else {
 			raw, err := root.ReadFile(path)
 			if err != nil {
@@ -91,6 +78,10 @@ func (a *ValidateSIPStructure) Execute(
 				msg := fmt.Sprintf("Files MUST be UTF-8 encoded, %q is not", path)
 				result.ValidationErrors = append(result.ValidationErrors, msg)
 			}
+
+			if path == "metadata/README.md" {
+				hasReadme = true
+			}
 		}
 
 		return nil
@@ -98,23 +89,13 @@ func (a *ValidateSIPStructure) Execute(
 	if err != nil {
 		return nil, err
 	}
+	if !hasMetadataDirectory {
+		result.ValidationErrors = append(result.ValidationErrors, "SIP Must include a top-level metadata directory")
+	} else if !hasReadme {
+		result.ValidationErrors = append(result.ValidationErrors, "Metadata directory must include a README.md file")
+	}
 
 	return result, nil
-}
-
-// dirContains reports whether dir contains a top-level entry with the given name.
-func dirContains(fsys fs.FS, dir, name string) (bool, error) {
-	topLevelEntries, err := fs.ReadDir(fsys, dir)
-	if err != nil {
-		return false, err
-	}
-	for _, entry := range topLevelEntries {
-		if entry.Name() == name {
-			return true, nil
-		}
-	}
-
-	return false, nil
 }
 
 func isDirEmpty(fsys fs.FS, path string) (bool, error) {

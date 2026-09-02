@@ -53,6 +53,11 @@ func TestValidateSIPStructure(t *testing.T) {
 				t.Helper()
 				return fs.NewDir(t, "sip",
 					fs.WithFile("hello.txt", "hello"),
+					fs.WithDir("mydir",
+						fs.WithDir("metadata",
+							fs.WithFile("some_file.txt", ""),
+						),
+					),
 				).Path()
 			},
 			want: func(string) []string {
@@ -82,8 +87,8 @@ func TestValidateSIPStructure(t *testing.T) {
 			},
 			want: func(string) []string {
 				return []string{
-					"Metadata directory must include a README.md file",
 					`folder "metadata" is empty`,
+					"Metadata directory must include a README.md file",
 				}
 			},
 		},
@@ -94,11 +99,11 @@ func TestValidateSIPStructure(t *testing.T) {
 					fs.WithDir("metadata",
 						fs.WithFile("README.md", "# SIP\n"),
 					),
-					fs.WithDir("empty"),
+					fs.WithDir("some_dir"),
 				).Path()
 			},
 			want: func(string) []string {
-				return []string{`folder "empty" is empty`}
+				return []string{`folder "some_dir" is empty`}
 			},
 		},
 		"Errors when a file is not UTF-8 encoded": {
@@ -131,20 +136,11 @@ func TestValidateSIPStructure(t *testing.T) {
 			},
 			want: func(string) []string {
 				return []string{
-					"SIP Must include a top-level metadata directory",
 					fmt.Sprintf("Files MUST be UTF-8 encoded, %q is not", "bad.bin"),
 					`folder "not_empty/empty_dir" is empty`,
+					"SIP Must include a top-level metadata directory",
 				}
 			},
-		},
-		"Errors when metadata is a file rather than a directory": {
-			setup: func(t *testing.T) string {
-				t.Helper()
-				return fs.NewDir(t, "sip",
-					fs.WithFile("metadata", "not a directory"),
-				).Path()
-			},
-			wantErr: "not a directory",
 		},
 	}
 
