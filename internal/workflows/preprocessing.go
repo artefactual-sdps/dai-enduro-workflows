@@ -175,9 +175,9 @@ func (w *PreprocessingWorkflow) Execute(
 			validateSIPStructureTask,
 			fmt.Sprintf("Invalid SIP structure:\n%s", ul(validateSIPStructureResult.ValidationErrors)),
 		)
-		return result, nil
+	} else {
+		validateSIPStructureTask.Succeed(temporalsdk_workflow.Now(ctx), "The SIP structure is valid")
 	}
-	validateSIPStructureTask.Succeed(temporalsdk_workflow.Now(ctx), "The SIP structure is valid")
 
 	validateFileFormatsTask := result.NewTask(temporalsdk_workflow.Now(ctx), "Validate file formats")
 	var ffvalidateResult ffvalidate.Result
@@ -201,9 +201,13 @@ func (w *PreprocessingWorkflow) Execute(
 			validateFileFormatsTask,
 			fmt.Sprintf("Invalid file formats:\n%s", ul(ffvalidateResult.Failures)),
 		)
+	} else {
+		validateFileFormatsTask.Succeed(temporalsdk_workflow.Now(ctx), "File formats are valid")
+	}
+
+	if result.Outcome != childwf.OutcomeSuccess {
 		return result, nil
 	}
-	validateFileFormatsTask.Succeed(temporalsdk_workflow.Now(ctx), "File formats are valid")
 
 	// Bag the SIP for Enduro processing.
 	taskBagSIP := result.NewTask(temporalsdk_workflow.Now(ctx), "Bag SIP")

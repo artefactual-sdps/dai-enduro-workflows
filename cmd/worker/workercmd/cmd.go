@@ -85,7 +85,7 @@ func (m *Main) Run(ctx context.Context) error {
 	)
 
 	w.RegisterActivityWithOptions(
-		ffvalidate.New(m.cfg.Preprocessing.FileFormatsPath).Execute,
+		ffvalidate.New(m.cfg.Preprocessing.FileFormat).Execute,
 		temporalsdk_activity.RegisterOptions{Name: ffvalidate.Name},
 	)
 

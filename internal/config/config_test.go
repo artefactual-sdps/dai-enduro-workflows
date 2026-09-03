@@ -65,7 +65,7 @@ func TestConfig(t *testing.T) {
 					BagCreate: bagcreate.Config{
 						ChecksumAlgorithm: "md5",
 					},
-					FileFormatsPath: ffvalidate.Config{
+					FileFormat: ffvalidate.Config{
 						AllowlistPath: "/home/enduro/.config/allowed_file_formats.csv",
 					},
 				},

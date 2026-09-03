@@ -67,8 +67,8 @@ type PreprocessingConfig struct {
 	// workflow.
 	BagCreate bagcreate.Config
 
-	// FileFormatsPath configures the ffvalidate allowlist/disallowlist activity.
-	FileFormatsPath ffvalidate.Config `mapstructure:"fileFormat"`
+	// FileFormat configures the ffvalidate allowlist/disallowlist activity.
+	FileFormat ffvalidate.Config
 }
 
 func (c Configuration) Validate() error {
@@ -123,7 +123,7 @@ func (c PreprocessingConfig) Validate() error {
 	if err := c.BagCreate.Validate(); err != nil {
 		errs = errors.Join(errs, fmt.Errorf("Preprocessing.BagCreate: %v", err))
 	}
-	if err := c.FileFormatsPath.Validate(); err != nil {
+	if err := c.FileFormat.Validate(); err != nil {
 		errs = errors.Join(errs, fmt.Errorf("Preprocessing.FileFormat: %v", err))
 	}
 
