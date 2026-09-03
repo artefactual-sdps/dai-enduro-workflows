@@ -106,7 +106,8 @@ make pre-commit
 Ensures the SIP is no bigger than 1 Terabyte.
 
 ### Validate file formats
-Identifies each file in the SIP and checks it against an allowed-formats CSV.
+Identifies each file in the SIP and checks it against an allowed-formats CSV
+using [`ffvalidate`][ffvalidate].
 The CSV must include a `PRONOM PUID` column. Kubernetes builds `dai-enduro-secret`
 from `hack/kube/allowed_file_formats.csv` and mounts it at
 `/home/enduro/.config/allowed_file_formats.csv`.
@@ -119,6 +120,7 @@ number of other more general Enduro temporal activities, including:
 - `ffvalidate`
 
 [Enduro development manual]: https://enduro.readthedocs.io/dev-manual/devel/
+[ffvalidate]: https://github.com/artefactual-sdps/temporal-activities/tree/main/ffvalidate
 [go]: https://go.dev/doc/install
 [make]: https://www.gnu.org/software/make/
 [gcc]: https://gcc.gnu.org/
