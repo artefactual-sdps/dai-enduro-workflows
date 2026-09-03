@@ -8,6 +8,7 @@ import (
 	"github.com/artefactual-sdps/enduro/pkg/childwf"
 	"github.com/artefactual-sdps/temporal-activities/bagcreate"
 	"github.com/artefactual-sdps/temporal-activities/bagextract"
+	"github.com/artefactual-sdps/temporal-activities/ffvalidate"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	temporalsdk_activity "go.temporal.io/sdk/activity"
@@ -59,6 +60,11 @@ func (s *PreprocessingTestSuite) SetupTest(cfg config.Configuration) {
 	s.env.RegisterActivityWithOptions(
 		activities.NewValidateSIPStructure().Execute,
 		temporalsdk_activity.RegisterOptions{Name: activities.ValidateSIPStructureName},
+	)
+
+	s.env.RegisterActivityWithOptions(
+		ffvalidate.New(cfg.Preprocessing.FileFormat).Execute,
+		temporalsdk_activity.RegisterOptions{Name: ffvalidate.Name},
 	)
 
 	cfg.Preprocessing.SharedPath = sharedPath
@@ -115,6 +121,14 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 		&activities.ValidateSIPStructureParams{Path: filepath.Join(sharedPath, relPath)},
 	).Return(
 		&activities.ValidateSIPStructureResult{},
+		nil,
+	)
+	s.env.OnActivity(
+		ffvalidate.Name,
+		sessionCtx,
+		&ffvalidate.Params{Path: srcPath},
+	).Return(
+		&ffvalidate.Result{},
 		nil,
 	)
 	s.env.OnActivity(
@@ -184,6 +198,13 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 					CompletedAt: s.env.Now().UTC(),
 				},
 				{
+					Name:        "Validate file formats",
+					Message:     "File formats are valid",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
 					Name:        "Bag SIP",
 					Message:     "SIP has been bagged",
 					Outcome:     childwf.TaskOutcomeSuccess,
@@ -236,6 +257,14 @@ func (s *PreprocessingTestSuite) TestSystemError() {
 		&activities.ValidateSIPStructureParams{Path: filepath.Join(sharedPath, relPath)},
 	).Return(
 		&activities.ValidateSIPStructureResult{},
+		nil,
+	)
+	s.env.OnActivity(
+		ffvalidate.Name,
+		sessionCtx,
+		&ffvalidate.Params{Path: srcPath},
+	).Return(
+		&ffvalidate.Result{},
 		nil,
 	)
 	s.env.OnActivity(
@@ -303,6 +332,13 @@ func (s *PreprocessingTestSuite) TestSystemError() {
 				{
 					Name:        "Validate the SIP structure",
 					Message:     "The SIP structure is valid",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
+					Name:        "Validate file formats",
+					Message:     "File formats are valid",
 					Outcome:     childwf.TaskOutcomeSuccess,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
@@ -463,7 +499,7 @@ func (s *PreprocessingTestSuite) TestSIPTooLarge() {
 	)
 }
 
-func (s *PreprocessingTestSuite) TestInvalidFileAndFolderAndStructure() {
+func (s *PreprocessingTestSuite) TestValidationErrors() {
 	relPath := "transfer"
 	s.SetupTest(config.Configuration{})
 
@@ -510,6 +546,16 @@ func (s *PreprocessingTestSuite) TestInvalidFileAndFolderAndStructure() {
 	).Return(
 		&activities.ValidateSIPStructureResult{
 			ValidationErrors: []string{"SIP Must include a top-level metadata directory"},
+		},
+		nil,
+	)
+	s.env.OnActivity(
+		ffvalidate.Name,
+		sessionCtx,
+		&ffvalidate.Params{Path: srcPath},
+	).Return(
+		&ffvalidate.Result{
+			Failures: []string{`file format "fmt/11" not allowed: "payload.bin"`},
 		},
 		nil,
 	)
@@ -569,6 +615,13 @@ func (s *PreprocessingTestSuite) TestInvalidFileAndFolderAndStructure() {
 				{
 					Name:        "Validate the SIP structure",
 					Message:     "Content error: Invalid SIP structure:\n- SIP Must include a top-level metadata directory",
+					Outcome:     childwf.TaskOutcomeValidationFailure,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
+					Name:        "Validate file formats",
+					Message:     "Content error: Invalid file formats:\n- file format \"fmt/11\" not allowed: \"payload.bin\"",
 					Outcome:     childwf.TaskOutcomeValidationFailure,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),

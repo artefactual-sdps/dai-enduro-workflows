@@ -9,6 +9,7 @@ import (
 	"github.com/artefactual-sdps/enduro/pkg/childwf"
 	"github.com/artefactual-sdps/temporal-activities/bagcreate"
 	"github.com/artefactual-sdps/temporal-activities/bagextract"
+	"github.com/artefactual-sdps/temporal-activities/ffvalidate"
 	"go.artefactual.dev/tools/temporal"
 	temporalsdk_temporal "go.temporal.io/sdk/temporal"
 	temporalsdk_workflow "go.temporal.io/sdk/workflow"
@@ -174,9 +175,39 @@ func (w *PreprocessingWorkflow) Execute(
 			validateSIPStructureTask,
 			fmt.Sprintf("Invalid SIP structure:\n%s", ul(validateSIPStructureResult.ValidationErrors)),
 		)
+	} else {
+		validateSIPStructureTask.Succeed(temporalsdk_workflow.Now(ctx), "The SIP structure is valid")
+	}
+
+	validateFileFormatsTask := result.NewTask(temporalsdk_workflow.Now(ctx), "Validate file formats")
+	var ffvalidateResult ffvalidate.Result
+	err = temporalsdk_workflow.ExecuteActivity(
+		withFilesystemActivityOpts(ctx),
+		ffvalidate.Name,
+		&ffvalidate.Params{Path: sourcePath},
+	).Get(ctx, &ffvalidateResult)
+	if err != nil {
+		logger.Error("System error", "message", err.Error())
+		result.SystemError(
+			temporalsdk_workflow.Now(ctx),
+			validateFileFormatsTask,
+			"file format validation has failed",
+		)
 		return result, nil
 	}
-	validateSIPStructureTask.Succeed(temporalsdk_workflow.Now(ctx), "The SIP structure is valid")
+	if len(ffvalidateResult.Failures) > 0 {
+		result.ValidationError(
+			temporalsdk_workflow.Now(ctx),
+			validateFileFormatsTask,
+			fmt.Sprintf("Invalid file formats:\n%s", ul(ffvalidateResult.Failures)),
+		)
+	} else {
+		validateFileFormatsTask.Succeed(temporalsdk_workflow.Now(ctx), "File formats are valid")
+	}
+
+	if result.Outcome != childwf.OutcomeSuccess {
+		return result, nil
+	}
 
 	// Bag the SIP for Enduro processing.
 	taskBagSIP := result.NewTask(temporalsdk_workflow.Now(ctx), "Bag SIP")

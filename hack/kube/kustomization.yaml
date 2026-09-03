@@ -3,5 +3,11 @@ kind: Kustomization
 namespace: enduro-sdps
 resources:
   - pvc.yaml
-  - secret.yaml
   - worker.yaml
+secretGenerator:
+  - name: dai-enduro-secret
+    files:
+      - dai-enduro-worker.toml
+      - allowed_file_formats.csv
+    options:
+      disableNameSuffixHash: true

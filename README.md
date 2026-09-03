@@ -30,6 +30,9 @@ sharedPath = "/home/enduro/shared"
 
 [preprocessing.bagCreate]
 checksumAlgorithm = "sha512"
+
+[preprocessing.fileFormat]
+allowlistPath = "/home/enduro/.config/allowed_file_formats.csv"
 ```
 
 The worker requires a configuration file. It searches the working directory,
@@ -97,16 +100,27 @@ make pre-commit
 
 ## Available Activities
 * [Validate SIP Size](#validate-sip-size)
+* [Validate file formats](#validate-file-formats)
 
 ### Validate SIP Size
 Ensures the SIP is no bigger than 1 Terabyte.
+
+### Validate file formats
+Identifies each file in the SIP and checks it against an allowed-formats CSV
+using [`ffvalidate`][ffvalidate].
+The CSV must include a `PRONOM PUID` column. Kubernetes builds `dai-enduro-secret`
+from `hack/kube/allowed_file_formats.csv` and mounts it at
+`/home/enduro/.config/allowed_file_formats.csv`.
 
 ### Other activities
 The preprocessing child workflow also uses a
 number of other more general Enduro temporal activities, including:
 - `bagcreate`
+- `bagextract`
+- `ffvalidate`
 
 [Enduro development manual]: https://enduro.readthedocs.io/dev-manual/devel/
+[ffvalidate]: https://github.com/artefactual-sdps/temporal-activities/tree/main/ffvalidate
 [go]: https://go.dev/doc/install
 [make]: https://www.gnu.org/software/make/
 [gcc]: https://gcc.gnu.org/
