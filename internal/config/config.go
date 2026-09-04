@@ -69,6 +69,10 @@ type PreprocessingConfig struct {
 
 	// FileFormat configures the ffvalidate allowlist/disallowlist activity.
 	FileFormat ffvalidate.Config
+
+	// CSVSchemaPath is a path to the CSVS file that contains the schema
+	// to validate the metadata.csv
+	CSVSchemaPath string
 }
 
 func (c Configuration) Validate() error {
@@ -118,6 +122,9 @@ func (c PreprocessingConfig) Validate() error {
 	}
 	if c.WorkflowName == "" {
 		errs = errors.Join(errs, errRequired("Preprocessing.WorkflowName"))
+	}
+	if c.CSVSchemaPath == "" {
+		errs = errors.Join(errs, errRequired("Preprocessing.CSVSchemaPath"))
 	}
 
 	if err := c.BagCreate.Validate(); err != nil {

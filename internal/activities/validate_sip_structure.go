@@ -19,7 +19,8 @@ type ValidateSIPStructureParams struct {
 }
 
 type ValidateSIPStructureResult struct {
-	ValidationErrors []string
+	HasMetadataDirectory bool
+	ValidationErrors     []string
 }
 
 type ValidateSIPStructure struct{}
@@ -48,7 +49,6 @@ func (a *ValidateSIPStructure) Execute(
 	fsys := root.FS()
 
 	hasReadme := false
-	hasMetadataDirectory := false
 	dirs := []string{}
 	nonEmptyDirs := map[string]struct{}{}
 	err = fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
@@ -62,7 +62,7 @@ func (a *ValidateSIPStructure) Execute(
 
 			// If the path equals to "metadata" it means it's located at the root of the Folder.
 			if path == "metadata" {
-				hasMetadataDirectory = true
+				result.HasMetadataDirectory = true
 			}
 		} else {
 			raw, err := root.ReadFile(path)
@@ -86,7 +86,8 @@ func (a *ValidateSIPStructure) Execute(
 	if err != nil {
 		return nil, err
 	}
-	if !hasMetadataDirectory {
+
+	if !result.HasMetadataDirectory {
 		result.ValidationErrors = append(result.ValidationErrors, "SIP Must include a top-level metadata directory")
 	} else if !hasReadme {
 		result.ValidationErrors = append(result.ValidationErrors, "Metadata directory must include a README.md file")

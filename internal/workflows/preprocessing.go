@@ -205,6 +205,38 @@ func (w *PreprocessingWorkflow) Execute(
 		validateFileFormatsTask.Succeed(temporalsdk_workflow.Now(ctx), "File formats are valid")
 	}
 
+	// Validate SIP Metadata
+	if validateSIPStructureResult.HasMetadataDirectory {
+		validateSIPMetadataTask := result.NewTask(temporalsdk_workflow.Now(ctx), "Validate the SIP metadata")
+		var validateSIPMetadataResult activities.ValidateSIPMetadataResult
+		err = temporalsdk_workflow.ExecuteActivity(
+			withFilesystemActivityOpts(ctx),
+			activities.ValidateSIPMetadataName,
+			&activities.ValidateSIPMetadataParams{
+				SIPSourcePath: sourcePath,
+				CSVSchemaPath: w.cfg.CSVSchemaPath,
+			},
+		).Get(ctx, &validateSIPMetadataResult)
+		if err != nil {
+			logger.Error("System error", "message", err.Error())
+			result.SystemError(
+				temporalsdk_workflow.Now(ctx),
+				validateSIPMetadataTask,
+				"SIP metadata validation has failed",
+			)
+			return result, nil
+		}
+		if len(validateSIPMetadataResult.ValidationErrors) > 0 {
+			result.ValidationError(
+				temporalsdk_workflow.Now(ctx),
+				validateSIPMetadataTask,
+				fmt.Sprintf("Invalid SIP metadata:\n%s", ul(validateSIPMetadataResult.ValidationErrors)),
+			)
+		} else {
+			validateSIPMetadataTask.Succeed(temporalsdk_workflow.Now(ctx), "The SIP metadata is valid")
+		}
+	}
+
 	if result.Outcome != childwf.OutcomeSuccess {
 		return result, nil
 	}
