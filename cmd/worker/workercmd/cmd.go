@@ -16,8 +16,11 @@ import (
 
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/activities"
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/config"
+	"github.com/artefactual-sdps/dai-enduro-workflows/internal/csvs"
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/workflows"
 )
+
+var _ activities.MetadataValidator = (*csvs.CSVValidatorCmd)(nil)
 
 type Main struct {
 	logger         logr.Logger
@@ -77,6 +80,11 @@ func (m *Main) Run(ctx context.Context) error {
 	w.RegisterActivityWithOptions(
 		activities.NewValidateFileAndFolder().Execute,
 		temporalsdk_activity.RegisterOptions{Name: activities.ValidateFileAndFolderName},
+	)
+
+	w.RegisterActivityWithOptions(
+		activities.NewValidateSIPMetadata(csvs.NewCSVValidatorCmd()).Execute,
+		temporalsdk_activity.RegisterOptions{Name: activities.ValidateSIPMetadataName},
 	)
 
 	w.RegisterActivityWithOptions(

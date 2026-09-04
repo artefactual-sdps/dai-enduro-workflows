@@ -12,6 +12,7 @@ maxConcurrentSessions = 1
 [preprocessing]
 workflowName = "preprocessing"
 sharedPath = "/home/enduro/shared"
+CSVSchemaPath = "/home/enduro/.config/dai-relaxed-schema.csvs"
 
 [preprocessing.bagCreate]
 checksumAlgorithm = "sha512"

@@ -17,6 +17,7 @@ import (
 
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/activities"
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/config"
+	"github.com/artefactual-sdps/dai-enduro-workflows/internal/csvs"
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/workflows"
 )
 
@@ -63,6 +64,11 @@ func (s *PreprocessingTestSuite) SetupTest(cfg config.Configuration) {
 	)
 
 	s.env.RegisterActivityWithOptions(
+		activities.NewValidateSIPMetadata(csvs.NewCSVValidatorCmd()).Execute,
+		temporalsdk_activity.RegisterOptions{Name: activities.ValidateSIPMetadataName},
+	)
+
+	s.env.RegisterActivityWithOptions(
 		ffvalidate.New(cfg.Preprocessing.FileFormat).Execute,
 		temporalsdk_activity.RegisterOptions{Name: ffvalidate.Name},
 	)
@@ -81,7 +87,11 @@ func TestPreprocessingWorkflow(t *testing.T) {
 
 func (s *PreprocessingTestSuite) TestSuccess() {
 	relPath := validSIPName
-	s.SetupTest(config.Configuration{})
+	s.SetupTest(config.Configuration{
+		Preprocessing: config.PreprocessingConfig{
+			CSVSchemaPath: "/schema/dai-relaxed-schema.csvs",
+		},
+	})
 
 	// Mock activities.
 	sessionCtx := mock.AnythingOfType("*context.timerCtx")
@@ -120,7 +130,7 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 		sessionCtx,
 		&activities.ValidateSIPStructureParams{Path: filepath.Join(sharedPath, relPath)},
 	).Return(
-		&activities.ValidateSIPStructureResult{},
+		&activities.ValidateSIPStructureResult{HasMetadataDirectory: true},
 		nil,
 	)
 	s.env.OnActivity(
@@ -129,6 +139,17 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 		&ffvalidate.Params{Path: srcPath},
 	).Return(
 		&ffvalidate.Result{},
+		nil,
+	)
+	s.env.OnActivity(
+		activities.ValidateSIPMetadataName,
+		sessionCtx,
+		&activities.ValidateSIPMetadataParams{
+			SIPSourcePath: srcPath,
+			CSVSchemaPath: "/schema/dai-relaxed-schema.csvs",
+		},
+	).Return(
+		&activities.ValidateSIPMetadataResult{},
 		nil,
 	)
 	s.env.OnActivity(
@@ -200,6 +221,13 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 				{
 					Name:        "Validate file formats",
 					Message:     "File formats are valid",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
+					Name:        "Validate the SIP metadata",
+					Message:     "The SIP metadata is valid",
 					Outcome:     childwf.TaskOutcomeSuccess,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
@@ -501,7 +529,11 @@ func (s *PreprocessingTestSuite) TestSIPTooLarge() {
 
 func (s *PreprocessingTestSuite) TestValidationErrors() {
 	relPath := "transfer"
-	s.SetupTest(config.Configuration{})
+	s.SetupTest(config.Configuration{
+		Preprocessing: config.PreprocessingConfig{
+			CSVSchemaPath: "/schema/dai-relaxed-schema.csvs",
+		},
+	})
 
 	sessionCtx := mock.AnythingOfType("*context.timerCtx")
 	srcPath := filepath.Join(sharedPath, relPath)
@@ -545,7 +577,8 @@ func (s *PreprocessingTestSuite) TestValidationErrors() {
 		&activities.ValidateSIPStructureParams{Path: srcPath},
 	).Return(
 		&activities.ValidateSIPStructureResult{
-			ValidationErrors: []string{"SIP Must include a top-level metadata directory"},
+			HasMetadataDirectory: true,
+			ValidationErrors:     []string{"Metadata directory must include a README.md file"},
 		},
 		nil,
 	)
@@ -556,6 +589,23 @@ func (s *PreprocessingTestSuite) TestValidationErrors() {
 	).Return(
 		&ffvalidate.Result{
 			Failures: []string{`file format "fmt/11" not allowed: "payload.bin"`},
+		},
+		nil,
+	)
+	s.env.OnActivity(
+		activities.ValidateSIPMetadataName,
+		sessionCtx,
+		&activities.ValidateSIPMetadataParams{
+			SIPSourcePath: srcPath,
+			CSVSchemaPath: "/schema/dai-relaxed-schema.csvs",
+		},
+	).Return(
+		&activities.ValidateSIPMetadataResult{
+			ValidationErrors: []string{
+				`notEmpty fails for line: 1, column: filename, value: ""`,
+				`notEmpty fails for line: 1, column: identifier, value: ""`,
+				`notEmpty fails for line: 1, column: identifier.ianus, value: ""`,
+			},
 		},
 		nil,
 	)
@@ -614,7 +664,7 @@ func (s *PreprocessingTestSuite) TestValidationErrors() {
 				},
 				{
 					Name:        "Validate the SIP structure",
-					Message:     "Content error: Invalid SIP structure:\n- SIP Must include a top-level metadata directory",
+					Message:     "Content error: Invalid SIP structure:\n- Metadata directory must include a README.md file",
 					Outcome:     childwf.TaskOutcomeValidationFailure,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
@@ -622,6 +672,16 @@ func (s *PreprocessingTestSuite) TestValidationErrors() {
 				{
 					Name:        "Validate file formats",
 					Message:     "Content error: Invalid file formats:\n- file format \"fmt/11\" not allowed: \"payload.bin\"",
+					Outcome:     childwf.TaskOutcomeValidationFailure,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
+					Name: "Validate the SIP metadata",
+					Message: "Content error: Invalid SIP metadata:\n" +
+						"- notEmpty fails for line: 1, column: filename, value: \"\"\n" +
+						"- notEmpty fails for line: 1, column: identifier, value: \"\"\n" +
+						"- notEmpty fails for line: 1, column: identifier.ianus, value: \"\"",
 					Outcome:     childwf.TaskOutcomeValidationFailure,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
