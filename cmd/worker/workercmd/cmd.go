@@ -20,8 +20,6 @@ import (
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/workflows"
 )
 
-var _ activities.MetadataValidator = (*csvs.CSVValidatorCmd)(nil)
-
 type Main struct {
 	logger         logr.Logger
 	cfg            config.Configuration

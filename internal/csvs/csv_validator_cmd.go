@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"go.artefactual.dev/tools/temporal"
+
+	"github.com/artefactual-sdps/dai-enduro-workflows/internal/activities"
 )
 
 const csvValidatorCmd = "csv-validator-cmd"
@@ -17,6 +19,8 @@ const csvValidatorCmd = "csv-validator-cmd"
 type CSVValidatorCmd struct {
 	Command string
 }
+
+var _ activities.MetadataValidator = (*CSVValidatorCmd)(nil)
 
 func NewCSVValidatorCmd() *CSVValidatorCmd {
 	return &CSVValidatorCmd{Command: csvValidatorCmd}

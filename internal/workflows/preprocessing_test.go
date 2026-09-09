@@ -89,7 +89,9 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 	relPath := validSIPName
 	s.SetupTest(config.Configuration{
 		Preprocessing: config.PreprocessingConfig{
-			CSVSchemaPath: "/schema/dai-relaxed-schema.csvs",
+			CSVValidate: config.CSVValidateConfig{
+				SchemaPath: "/schema/dai-relaxed-schema.csvs",
+			},
 		},
 	})
 
@@ -531,7 +533,9 @@ func (s *PreprocessingTestSuite) TestValidationErrors() {
 	relPath := "transfer"
 	s.SetupTest(config.Configuration{
 		Preprocessing: config.PreprocessingConfig{
-			CSVSchemaPath: "/schema/dai-relaxed-schema.csvs",
+			CSVValidate: config.CSVValidateConfig{
+				SchemaPath: "/schema/dai-relaxed-schema.csvs",
+			},
 		},
 	})
 

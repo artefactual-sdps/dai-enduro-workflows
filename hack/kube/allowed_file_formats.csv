@@ -4,3 +4,4 @@ Plain text UTF-16,x-fmt/16
 ASCII text,x-fmt/62
 Markdown,fmt/1149
 JSON Data Interchange Format,fmt/817
+Comma Separated Values,x-fmt/18

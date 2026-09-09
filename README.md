@@ -31,6 +31,9 @@ sharedPath = "/home/enduro/shared"
 [preprocessing.bagCreate]
 checksumAlgorithm = "sha512"
 
+[preprocessing.csvValidate]
+schemaPath = "/home/enduro/.config/dai-relaxed-schema.csvs"
+
 [preprocessing.fileFormat]
 allowlistPath = "/home/enduro/.config/allowed_file_formats.csv"
 ```

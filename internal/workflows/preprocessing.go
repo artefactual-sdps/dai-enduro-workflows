@@ -214,7 +214,7 @@ func (w *PreprocessingWorkflow) Execute(
 			activities.ValidateSIPMetadataName,
 			&activities.ValidateSIPMetadataParams{
 				SIPSourcePath: sourcePath,
-				CSVSchemaPath: w.cfg.CSVSchemaPath,
+				CSVSchemaPath: w.cfg.CSVValidate.SchemaPath,
 			},
 		).Get(ctx, &validateSIPMetadataResult)
 		if err != nil {
