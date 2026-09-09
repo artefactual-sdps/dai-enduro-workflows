@@ -213,8 +213,8 @@ func (w *PreprocessingWorkflow) Execute(
 			withFilesystemActivityOpts(ctx),
 			activities.ValidateSIPMetadataName,
 			&activities.ValidateSIPMetadataParams{
-				SIPSourcePath: sourcePath,
-				CSVSchemaPath: w.cfg.CSVValidate.SchemaPath,
+				MetadataPath: filepath.Join(sourcePath, "metadata", "metadata.csv"),
+				SchemaPath:   w.cfg.CSVValidate.SchemaPath,
 			},
 		).Get(ctx, &validateSIPMetadataResult)
 		if err != nil {

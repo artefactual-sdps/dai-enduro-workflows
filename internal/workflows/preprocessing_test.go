@@ -147,8 +147,8 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 		activities.ValidateSIPMetadataName,
 		sessionCtx,
 		&activities.ValidateSIPMetadataParams{
-			SIPSourcePath: srcPath,
-			CSVSchemaPath: "/schema/dai-relaxed-schema.csvs",
+			MetadataPath: filepath.Join(srcPath, "metadata", "metadata.csv"),
+			SchemaPath:   "/schema/dai-relaxed-schema.csvs",
 		},
 	).Return(
 		&activities.ValidateSIPMetadataResult{},
@@ -600,8 +600,8 @@ func (s *PreprocessingTestSuite) TestValidationErrors() {
 		activities.ValidateSIPMetadataName,
 		sessionCtx,
 		&activities.ValidateSIPMetadataParams{
-			SIPSourcePath: srcPath,
-			CSVSchemaPath: "/schema/dai-relaxed-schema.csvs",
+			MetadataPath: filepath.Join(srcPath, "metadata", "metadata.csv"),
+			SchemaPath:   "/schema/dai-relaxed-schema.csvs",
 		},
 	).Return(
 		&activities.ValidateSIPMetadataResult{

@@ -4,16 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"os/exec"
 	"strings"
-
-	"go.artefactual.dev/tools/temporal"
 
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/activities"
 )
 
-const csvValidatorCmd = "csv-validator-cmd"
+const (
+	csvValidatorCmd     = "csv-validator-cmd"
+	validationErrorCode = 3
+)
 
 // CSVValidatorCmd validates a CSV file by running csv-validator-cmd.
 type CSVValidatorCmd struct {
@@ -35,10 +35,11 @@ func (c *CSVValidatorCmd) Validate(ctx context.Context, csvPath, schemaPath stri
 	cmd := exec.CommandContext(ctx, command, "--skip-file-checks", csvPath, schemaPath) // #nosec G204
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		if errors.Is(err, exec.ErrNotFound) || isNotFoundError(err) {
-			return nil, temporal.NewNonRetryableError(fmt.Errorf("%s not found: %w", command, err))
+		if errors.Is(err, exec.ErrNotFound) {
+			return nil, fmt.Errorf("%s not found: %w", command, err)
 		}
-		if _, ok := errors.AsType[*exec.ExitError](err); ok {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) && exitErr.ExitCode() == validationErrorCode {
 			validationErrors := parseCSVValidatorOutput(string(out))
 			if len(validationErrors) > 0 {
 				return validationErrors, nil
@@ -74,9 +75,4 @@ func parseCSVValidatorOutput(output string) []string {
 		}
 	}
 	return errs
-}
-
-func isNotFoundError(err error) bool {
-	var pathErr *os.PathError
-	return errors.As(err, &pathErr) && errors.Is(pathErr.Err, os.ErrNotExist)
 }

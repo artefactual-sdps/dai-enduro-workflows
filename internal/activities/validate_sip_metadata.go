@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"os"
-	"path/filepath"
 
 	"go.artefactual.dev/tools/temporal"
 )
@@ -21,8 +20,8 @@ type MetadataValidator interface {
 }
 
 type ValidateSIPMetadataParams struct {
-	SIPSourcePath string
-	CSVSchemaPath string
+	MetadataPath string
+	SchemaPath   string
 }
 
 type ValidateSIPMetadataResult struct {
@@ -30,38 +29,45 @@ type ValidateSIPMetadataResult struct {
 }
 
 type ValidateSIPMetadata struct {
-	csvs MetadataValidator
+	validator MetadataValidator
 }
 
 func NewValidateSIPMetadata(validator MetadataValidator) *ValidateSIPMetadata {
-	return &ValidateSIPMetadata{csvs: validator}
+	return &ValidateSIPMetadata{validator: validator}
 }
 
 func (a *ValidateSIPMetadata) Execute(
 	ctx context.Context,
 	params *ValidateSIPMetadataParams,
 ) (*ValidateSIPMetadataResult, error) {
-	if params == nil || params.SIPSourcePath == "" {
-		return nil, temporal.NewNonRetryableError(errors.New("SIP source path cannot be empty"))
+	if params == nil || params.MetadataPath == "" {
+		return nil, temporal.NewNonRetryableError(errors.New("CSV metadata path cannot be empty"))
 	}
-	if params.CSVSchemaPath == "" {
+	if params.SchemaPath == "" {
 		return nil, temporal.NewNonRetryableError(errors.New("CSV schema path cannot be empty"))
 	}
 
 	result := &ValidateSIPMetadataResult{}
-	csvMetadataPath := filepath.Join(params.SIPSourcePath, sipMetadataCSV)
-	if _, err := os.Stat(csvMetadataPath); err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			result.ValidationErrors = append(result.ValidationErrors, "metadata/metadata.csv is missing")
-			return result, nil
-		}
-		return nil, err
+	var err error
+	if err := errors.Join(err,
+		fileExists(params.MetadataPath),
+		fileExists(params.SchemaPath),
+	); err != nil {
+		return nil, temporal.NewNonRetryableError(err)
 	}
 
-	validationErrors, err := a.csvs.Validate(ctx, csvMetadataPath, params.CSVSchemaPath)
+	validationErrors, err := a.validator.Validate(ctx, params.MetadataPath, params.SchemaPath)
 	if err != nil {
 		return nil, err
 	}
 	result.ValidationErrors = validationErrors
 	return result, nil
+}
+
+func fileExists(path string) error {
+	_, err := os.Stat(path)
+	if err != nil && errors.Is(err, os.ErrNotExist) {
+		err = errors.New(path + " is missing")
+	}
+	return err
 }

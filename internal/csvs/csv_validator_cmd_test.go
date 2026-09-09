@@ -25,37 +25,46 @@ func TestCSVValidatorCmd(t *testing.T) {
 		fs.WithContent("filename,identifier,identifier.ianus\na.pdf,id,ianus\n"),
 	).Path()
 
-	tests := map[string]struct {
-		setup   func(t *testing.T) *csvs.CSVValidatorCmd
-		want    []string
-		wantErr string
-	}{
-		"Accepts a CSV that the validator passes": {
-			setup: func(t *testing.T) *csvs.CSVValidatorCmd {
-				t.Helper()
-				script := `#!/bin/sh
+	passCmd := fakeCSVValidator(t, `#!/bin/sh
 echo 'processing 1 of 2'
 echo 'processing 2 of 2'
 echo PASS
 exit 0
-`
-				return &csvs.CSVValidatorCmd{Command: fakeCSVValidator(t, script)}
-			},
-		},
-		"Collects validator error lines": {
-			setup: func(t *testing.T) *csvs.CSVValidatorCmd {
-				t.Helper()
-				script := `#!/bin/sh
+`)
+	errorCmd := fakeCSVValidator(t, `#!/bin/sh
 echo 'processing 1 of 2'
 echo 'Error:   notEmpty fails for line: 1, column: filename, value: ""'
 echo 'processing 2 of 2'
 echo 'Error:   notEmpty fails for line: 1, column: identifier, value: ""'
 echo 'Error:   notEmpty fails for line: 1, column: identifier.ianus, value: ""'
 echo FAIL
+exit 3
+`)
+	missingHeaderCmd := fakeCSVValidator(t, `#!/bin/sh
+echo 'processing 1 of 4'
+echo 'Error:   Metadata header, cannot find the column headers - identifier.identifiertype, title, publicationyear - .'
+echo FAIL
+exit 3
+`)
+	incorrectArgsCmd := fakeCSVValidator(t, `#!/bin/sh
+echo 'Error: Cannot access CSV file: missing.csv'
 exit 1
-`
-				return &csvs.CSVValidatorCmd{Command: fakeCSVValidator(t, script)}
-			},
+`)
+	invalidSchemaCmd := fakeCSVValidator(t, `#!/bin/sh
+echo 'Error: Invalid column definition'
+exit 2
+`)
+
+	tests := map[string]struct {
+		command string
+		want    []string
+		wantErr string
+	}{
+		"Accepts a CSV that the validator passes": {
+			command: passCmd,
+		},
+		"Collects validator error lines": {
+			command: errorCmd,
 			want: []string{
 				`notEmpty fails for line: 1, column: filename, value: ""`,
 				`notEmpty fails for line: 1, column: identifier, value: ""`,
@@ -63,26 +72,22 @@ exit 1
 			},
 		},
 		"Collects missing column header errors": {
-			setup: func(t *testing.T) *csvs.CSVValidatorCmd {
-				t.Helper()
-				script := `#!/bin/sh
-echo 'processing 1 of 4'
-echo 'Error:   Metadata header, cannot find the column headers - identifier.identifiertype, title, publicationyear - .'
-echo FAIL
-exit 1
-`
-				return &csvs.CSVValidatorCmd{Command: fakeCSVValidator(t, script)}
-			},
+			command: missingHeaderCmd,
 			want: []string{
 				"Metadata header, cannot find the column headers - identifier.identifiertype, title, publicationyear - .",
 			},
 		},
+		"Errors when csv-validator-cmd arguments are incorrect": {
+			command: incorrectArgsCmd,
+			wantErr: "Cannot access CSV file: missing.csv",
+		},
+		"Errors when the CSV schema is invalid": {
+			command: invalidSchemaCmd,
+			wantErr: "Invalid column definition",
+		},
 		"Errors when csv-validator-cmd is not found": {
-			setup: func(t *testing.T) *csvs.CSVValidatorCmd {
-				t.Helper()
-				return &csvs.CSVValidatorCmd{Command: filepath.Join(t.TempDir(), "missing-csv-validator-cmd")}
-			},
-			wantErr: "not found",
+			command: filepath.Join(t.TempDir(), "missing-csv-validator-cmd"),
+			wantErr: "no such file or directory",
 		},
 	}
 
@@ -90,7 +95,7 @@ exit 1
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := tc.setup(t).Validate(t.Context(), csvPath, schemaPath)
+			got, err := (&csvs.CSVValidatorCmd{Command: tc.command}).Validate(t.Context(), csvPath, schemaPath)
 			if tc.wantErr != "" {
 				assert.ErrorContains(t, err, tc.wantErr)
 				return

@@ -3,6 +3,7 @@ package activities_test
 import (
 	"context"
 	"errors"
+	"path/filepath"
 	"testing"
 
 	"gotest.tools/v3/assert"
@@ -32,13 +33,13 @@ func TestValidateSIPMetadata(t *testing.T) {
 		wantValidationErrs []string
 		wantErr            string
 	}{
-		"Errors when the SIP source path is empty": {
+		"Errors when the CSV metadata path is empty": {
 			setup: func(t *testing.T) string {
 				t.Helper()
 				return ""
 			},
 			schema:  schemaPath,
-			wantErr: "SIP source path cannot be empty",
+			wantErr: "CSV metadata path cannot be empty",
 		},
 		"Errors when the CSV schema path is empty": {
 			setup: func(t *testing.T) string {
@@ -47,38 +48,63 @@ func TestValidateSIPMetadata(t *testing.T) {
 			},
 			wantErr: "CSV schema path cannot be empty",
 		},
-		"Reports a missing metadata.csv as a validation error": {
+		"Errors when metadata.csv is missing": {
 			setup: func(t *testing.T) string {
 				t.Helper()
-				return fs.NewDir(t, "sip",
+				sip := fs.NewDir(t, "sip",
 					fs.WithDir("metadata",
 						fs.WithFile("README.md", "# SIP\n"),
 					),
-				).Path()
+				)
+				return filepath.Join(sip.Path(), "metadata", "metadata.csv")
 			},
-			schema:             schemaPath,
-			wantValidationErrs: []string{"metadata/metadata.csv is missing"},
+			schema:  schemaPath,
+			wantErr: "metadata.csv is missing",
 		},
 		"Accepts a CSV that the validator accepts": {
 			setup: func(t *testing.T) string {
 				t.Helper()
-				return fs.NewDir(t, "sip",
+				sip := fs.NewDir(t, "sip",
 					fs.WithDir("metadata",
 						fs.WithFile("metadata.csv", "filename,identifier,identifier.ianus\na.pdf,id,ianus\n"),
 					),
-				).Path()
+				)
+				return filepath.Join(sip.Path(), "metadata", "metadata.csv")
 			},
 			schema:    schemaPath,
 			validator: &testMetadataValidator{},
 		},
+		"Returns validation errors": {
+			setup: func(t *testing.T) string {
+				t.Helper()
+				sip := fs.NewDir(t, "sip",
+					fs.WithDir("metadata",
+						fs.WithFile("metadata.csv", "filename,identifier,identifier.ianus\n,,\n"),
+					),
+				)
+				return filepath.Join(sip.Path(), "metadata", "metadata.csv")
+			},
+			schema: schemaPath,
+			validator: &testMetadataValidator{
+				validationErrs: []string{
+					`notEmpty fails for line: 1, column: filename, value: ""`,
+					`notEmpty fails for line: 1, column: identifier, value: ""`,
+				},
+			},
+			wantValidationErrs: []string{
+				`notEmpty fails for line: 1, column: filename, value: ""`,
+				`notEmpty fails for line: 1, column: identifier, value: ""`,
+			},
+		},
 		"Returns validator system errors": {
 			setup: func(t *testing.T) string {
 				t.Helper()
-				return fs.NewDir(t, "sip",
+				sip := fs.NewDir(t, "sip",
 					fs.WithDir("metadata",
 						fs.WithFile("metadata.csv", "filename\na.pdf\n"),
 					),
-				).Path()
+				)
+				return filepath.Join(sip.Path(), "metadata", "metadata.csv")
 			},
 			schema:    schemaPath,
 			validator: &testMetadataValidator{systemErr: errors.New("csv-validator-cmd not found")},
@@ -94,8 +120,8 @@ func TestValidateSIPMetadata(t *testing.T) {
 			got, err := activities.NewValidateSIPMetadata(tc.validator).Execute(
 				t.Context(),
 				&activities.ValidateSIPMetadataParams{
-					SIPSourcePath: sipPath,
-					CSVSchemaPath: tc.schema,
+					MetadataPath: sipPath,
+					SchemaPath:   tc.schema,
 				},
 			)
 			if tc.wantErr != "" {
