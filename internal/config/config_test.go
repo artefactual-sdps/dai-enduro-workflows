@@ -25,6 +25,8 @@ workflowName = "preprocessing"
 sharedPath = "/home/enduro/shared"
 [preprocessing.bagCreate]
 checksumAlgorithm = "md5"
+[preprocessing.csvValidate]
+schemaPath = "/home/enduro/.config/dai-relaxed-schema.csvs"
 [preprocessing.fileFormat]
 allowlistPath = "/home/enduro/.config/allowed_file_formats.csv"
 `
@@ -65,6 +67,9 @@ func TestConfig(t *testing.T) {
 					BagCreate: bagcreate.Config{
 						ChecksumAlgorithm: "md5",
 					},
+					CSVValidate: config.CSVValidateConfig{
+						SchemaPath: "/home/enduro/.config/dai-relaxed-schema.csvs",
+					},
 					FileFormat: ffvalidate.Config{
 						AllowlistPath: "/home/enduro/.config/allowed_file_formats.csv",
 					},
@@ -79,7 +84,8 @@ func TestConfig(t *testing.T) {
 Temporal.Address: missing required value
 Worker.TaskQueue: missing required value
 Preprocessing.SharedPath: missing required value
-Preprocessing.WorkflowName: missing required value`,
+Preprocessing.WorkflowName: missing required value
+Preprocessing.CSVValidate.SchemaPath: missing required value`,
 		},
 		{
 			name:       "Errors when MaxConcurrentSessions is less than 1",
@@ -93,6 +99,8 @@ taskQueue = "dai-enduro"
 [preprocessing]
 workflowName = "preprocessing"
 sharedPath = "/home/enduro/shared"
+[preprocessing.csvValidate]
+schemaPath = "/home/enduro/.config/dai-relaxed-schema.csvs"
 `,
 			wantFound: true,
 			wantErr: `invalid configuration
@@ -109,6 +117,8 @@ taskQueue = "dai-enduro"
 [preprocessing]
 workflowName = "preprocessing"
 sharedPath = "/home/enduro/shared"
+[preprocessing.csvValidate]
+schemaPath = "/home/enduro/.config/dai-relaxed-schema.csvs"
 [preprocessing.bagCreate]
 checksumAlgorithm = "unknown"
 `,
@@ -127,6 +137,8 @@ taskQueue = "dai-enduro"
 [preprocessing]
 workflowName = "preprocessing"
 sharedPath = "/home/enduro/shared"
+[preprocessing.csvValidate]
+schemaPath = "/home/enduro/.config/dai-relaxed-schema.csvs"
 [preprocessing.fileFormat]
 allowlistPath = "/home/enduro/.config/allowed_file_formats.csv"
 disallowlistPath = "/home/enduro/.config/disallowed_file_formats.csv"

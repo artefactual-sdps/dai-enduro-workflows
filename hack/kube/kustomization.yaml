@@ -9,5 +9,6 @@ secretGenerator:
     files:
       - dai-enduro-worker.toml
       - allowed_file_formats.csv
+      - dai-relaxed-schema.csvs
     options:
       disableNameSuffixHash: true
