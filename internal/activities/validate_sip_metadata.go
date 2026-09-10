@@ -10,7 +10,6 @@ import (
 
 const (
 	ValidateSIPMetadataName = "validate-sip-metadata"
-	sipMetadataCSV          = "metadata/metadata.csv"
 )
 
 // MetadataValidator validates a metadata.csv file against a CSV schema.
@@ -48,8 +47,7 @@ func (a *ValidateSIPMetadata) Execute(
 	}
 
 	result := &ValidateSIPMetadataResult{}
-	var err error
-	if err := errors.Join(err,
+	if err := errors.Join(
 		fileExists(params.MetadataPath),
 		fileExists(params.SchemaPath),
 	); err != nil {
@@ -60,6 +58,7 @@ func (a *ValidateSIPMetadata) Execute(
 	if err != nil {
 		return nil, err
 	}
+
 	result.ValidationErrors = validationErrors
 	return result, nil
 }
