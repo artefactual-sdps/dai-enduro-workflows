@@ -39,7 +39,9 @@ func TestValidateSIPStructure(t *testing.T) {
 				t.Helper()
 				return fs.NewDir(t, "sip",
 					fs.WithDir("metadata",
-						fs.WithFile("README.md", "# SIP\n"),
+						fs.WithDir("submissionDocumentation",
+							fs.WithFile("README.md", "# SIP\n"),
+						),
 					),
 					fs.WithDir("payload",
 						fs.WithFile("hello.txt", "hello"),
@@ -74,7 +76,7 @@ func TestValidateSIPStructure(t *testing.T) {
 				).Path()
 			},
 			want: func(string) []string {
-				return []string{"Metadata directory must include a README.md file"}
+				return []string{"metadata/submissionDocumentation directory must include a README.md file"}
 			},
 		},
 		"Errors when metadata exists but is empty": {
@@ -87,7 +89,7 @@ func TestValidateSIPStructure(t *testing.T) {
 			},
 			want: func(string) []string {
 				return []string{
-					"Metadata directory must include a README.md file",
+					"metadata/submissionDocumentation directory must include a README.md file",
 					`folder "metadata" is empty`,
 				}
 			},
@@ -97,7 +99,9 @@ func TestValidateSIPStructure(t *testing.T) {
 				t.Helper()
 				return fs.NewDir(t, "sip",
 					fs.WithDir("metadata",
-						fs.WithFile("README.md", "# SIP\n"),
+						fs.WithDir("submissionDocumentation",
+							fs.WithFile("README.md", "# SIP\n"),
+						),
 					),
 					fs.WithDir("some_dir"),
 				).Path()
@@ -111,7 +115,9 @@ func TestValidateSIPStructure(t *testing.T) {
 				t.Helper()
 				dir := fs.NewDir(t, "sip",
 					fs.WithDir("metadata",
-						fs.WithFile("README.md", "# SIP\n"),
+						fs.WithDir("submissionDocumentation",
+							fs.WithFile("README.md", "# SIP\n"),
+						),
 					),
 					fs.WithFile("bad.bin", ""),
 				)
