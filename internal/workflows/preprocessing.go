@@ -16,6 +16,7 @@ import (
 
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/activities"
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/config"
+	"github.com/artefactual-sdps/dai-enduro-workflows/internal/premis"
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/sip"
 )
 
@@ -241,6 +242,48 @@ func (w *PreprocessingWorkflow) Execute(
 		return result, nil
 	}
 
+	premisEvents := []premisEventInput{
+		{
+			Detail:        `name="Validate the SIP name"`,
+			OutcomeDetail: fmt.Sprintf("The SIP name is valid: %s", sipName),
+		},
+		{
+			Detail:        `name="Validate the SIP size"`,
+			OutcomeDetail: fmt.Sprintf("SIP size checked: %s", validatSIPSizeResult.SizeHuman),
+		},
+		{
+			Detail:        `name="Validate the SIP payload"`,
+			OutcomeDetail: "SIP payload size checked",
+		},
+		{
+			Detail:        `name="Validate file and folder names"`,
+			OutcomeDetail: "File and folder names are valid",
+		},
+		{
+			Detail:        `name="Validate the SIP structure"`,
+			OutcomeDetail: "The SIP structure is valid",
+		},
+		{
+			Detail:        `name="Validate file formats"`,
+			OutcomeDetail: "File formats are valid",
+		},
+		{
+			Detail:        `name="Validate the SIP metadata"`,
+			OutcomeDetail: "The SIP metadata is valid",
+		},
+	}
+
+	taskCreatePREMIS := result.NewTask(temporalsdk_workflow.Now(ctx), "Create premis.xml")
+	if err := writePREMISFile(ctx, sourcePath, premisEvents); err != nil {
+		logger.Error("System error", "message", err.Error())
+		result.SystemError(temporalsdk_workflow.Now(ctx), taskCreatePREMIS, "premis.xml creation has failed")
+		return result, nil
+	}
+	taskCreatePREMIS.Succeed(
+		temporalsdk_workflow.Now(ctx),
+		"Created a premis.xml file and stored it in the metadata directory",
+	)
+
 	// Bag the SIP for Enduro processing.
 	taskBagSIP := result.NewTask(temporalsdk_workflow.Now(ctx), "Bag SIP")
 	var createBag bagcreate.Result
@@ -259,6 +302,63 @@ func (w *PreprocessingWorkflow) Execute(
 	taskBagSIP.Succeed(temporalsdk_workflow.Now(ctx), "SIP has been bagged")
 
 	return result, nil
+}
+
+type premisEventInput struct {
+	Detail        string
+	OutcomeDetail string
+}
+
+func writePREMISFile(ctx temporalsdk_workflow.Context, sipPath string, events []premisEventInput) error {
+	path := filepath.Join(sipPath, "metadata", "premis.xml")
+
+	var addPREMISObjects activities.AddPREMISObjectsResult
+	err := temporalsdk_workflow.ExecuteActivity(
+		withFilesystemActivityOpts(ctx),
+		activities.AddPREMISObjectsName,
+		&activities.AddPREMISObjectsParams{
+			SIPPath:        sipPath,
+			PREMISFilePath: path,
+		},
+	).Get(ctx, &addPREMISObjects)
+	if err != nil {
+		return err
+	}
+
+	agent := premis.AgentDefault()
+	for _, event := range events {
+		var addPREMISEvent activities.AddPREMISEventResult
+		err = temporalsdk_workflow.ExecuteActivity(
+			withFilesystemActivityOpts(ctx),
+			activities.AddPREMISEventName,
+			&activities.AddPREMISEventParams{
+				PREMISFilePath: path,
+				Agent:          agent,
+				Type:           "validation",
+				Detail:         event.Detail,
+				OutcomeDetail:  event.OutcomeDetail,
+				Failures:       nil,
+			},
+		).Get(ctx, &addPREMISEvent)
+		if err != nil {
+			return err
+		}
+	}
+
+	var addPREMISEnduroAgent activities.AddPREMISAgentResult
+	err = temporalsdk_workflow.ExecuteActivity(
+		withFilesystemActivityOpts(ctx),
+		activities.AddPREMISAgentName,
+		&activities.AddPREMISAgentParams{
+			PREMISFilePath: path,
+			Agent:          agent,
+		},
+	).Get(ctx, &addPREMISEnduroAgent)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func withFilesystemActivityOpts(ctx temporalsdk_workflow.Context) temporalsdk_workflow.Context {

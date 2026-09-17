@@ -18,6 +18,7 @@ import (
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/activities"
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/config"
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/csvs"
+	"github.com/artefactual-sdps/dai-enduro-workflows/internal/premis"
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/workflows"
 )
 
@@ -71,6 +72,19 @@ func (s *PreprocessingTestSuite) SetupTest(cfg config.Configuration) {
 	s.env.RegisterActivityWithOptions(
 		ffvalidate.New(cfg.Preprocessing.FileFormat).Execute,
 		temporalsdk_activity.RegisterOptions{Name: ffvalidate.Name},
+	)
+
+	s.env.RegisterActivityWithOptions(
+		activities.NewAddPREMISObjects(nil).Execute,
+		temporalsdk_activity.RegisterOptions{Name: activities.AddPREMISObjectsName},
+	)
+	s.env.RegisterActivityWithOptions(
+		activities.NewAddPREMISEvent().Execute,
+		temporalsdk_activity.RegisterOptions{Name: activities.AddPREMISEventName},
+	)
+	s.env.RegisterActivityWithOptions(
+		activities.NewAddPREMISAgent().Execute,
+		temporalsdk_activity.RegisterOptions{Name: activities.AddPREMISAgentName},
 	)
 
 	cfg.Preprocessing.SharedPath = sharedPath
@@ -154,6 +168,7 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 		&activities.ValidateSIPMetadataResult{},
 		nil,
 	)
+	mockPREMISActivities(s.env, sessionCtx, srcPath)
 	s.env.OnActivity(
 		bagcreate.Name,
 		sessionCtx,
@@ -235,6 +250,13 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 					CompletedAt: s.env.Now().UTC(),
 				},
 				{
+					Name:        "Create premis.xml",
+					Message:     "Created a premis.xml file and stored it in the metadata directory",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
 					Name:        "Bag SIP",
 					Message:     "SIP has been bagged",
 					Outcome:     childwf.TaskOutcomeSuccess,
@@ -297,6 +319,7 @@ func (s *PreprocessingTestSuite) TestSystemError() {
 		&ffvalidate.Result{},
 		nil,
 	)
+	mockPREMISActivities(s.env, sessionCtx, srcPath)
 	s.env.OnActivity(
 		bagcreate.Name,
 		sessionCtx,
@@ -369,6 +392,13 @@ func (s *PreprocessingTestSuite) TestSystemError() {
 				{
 					Name:        "Validate file formats",
 					Message:     "File formats are valid",
+					Outcome:     childwf.TaskOutcomeSuccess,
+					StartedAt:   s.env.Now().UTC(),
+					CompletedAt: s.env.Now().UTC(),
+				},
+				{
+					Name:        "Create premis.xml",
+					Message:     "Created a premis.xml file and stored it in the metadata directory",
 					Outcome:     childwf.TaskOutcomeSuccess,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
@@ -811,4 +841,59 @@ func (s *PreprocessingTestSuite) TestSIPPayloadTooLarge() {
 			)
 		})
 	}
+}
+
+func mockPREMISActivities(
+	env *temporalsdk_testsuite.TestWorkflowEnvironment,
+	sessionCtx any,
+	srcPath string,
+) {
+	premisPath := filepath.Join(srcPath, "metadata", "premis.xml")
+	agent := premis.AgentDefault()
+
+	env.OnActivity(
+		activities.AddPREMISObjectsName,
+		sessionCtx,
+		&activities.AddPREMISObjectsParams{
+			SIPPath:        srcPath,
+			PREMISFilePath: premisPath,
+		},
+	).Return(&activities.AddPREMISObjectsResult{}, nil)
+
+	events := []struct {
+		detail        string
+		outcomeDetail string
+	}{
+		{`name="Validate the SIP name"`, "The SIP name is valid: " + validSIPName},
+		{`name="Validate the SIP size"`, "SIP size checked: 1.0 kB"},
+		{`name="Validate the SIP payload"`, "SIP payload size checked"},
+		{`name="Validate file and folder names"`, "File and folder names are valid"},
+		{`name="Validate the SIP structure"`, "The SIP structure is valid"},
+		{`name="Validate file formats"`, "File formats are valid"},
+		{`name="Validate the SIP metadata"`, "The SIP metadata is valid"},
+	}
+
+	for _, e := range events {
+		env.OnActivity(
+			activities.AddPREMISEventName,
+			sessionCtx,
+			&activities.AddPREMISEventParams{
+				PREMISFilePath: premisPath,
+				Agent:          agent,
+				Type:           "validation",
+				Detail:         e.detail,
+				OutcomeDetail:  e.outcomeDetail,
+				Failures:       nil,
+			},
+		).Return(&activities.AddPREMISEventResult{}, nil)
+	}
+
+	env.OnActivity(
+		activities.AddPREMISAgentName,
+		sessionCtx,
+		&activities.AddPREMISAgentParams{
+			PREMISFilePath: premisPath,
+			Agent:          agent,
+		},
+	).Return(&activities.AddPREMISAgentResult{}, nil)
 }

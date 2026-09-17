@@ -2,6 +2,7 @@ package workercmd
 
 import (
 	"context"
+	"crypto/rand"
 
 	"github.com/artefactual-sdps/temporal-activities/bagcreate"
 	"github.com/artefactual-sdps/temporal-activities/bagextract"
@@ -93,6 +94,21 @@ func (m *Main) Run(ctx context.Context) error {
 	w.RegisterActivityWithOptions(
 		ffvalidate.New(m.cfg.Preprocessing.FileFormat).Execute,
 		temporalsdk_activity.RegisterOptions{Name: ffvalidate.Name},
+	)
+
+	w.RegisterActivityWithOptions(
+		activities.NewAddPREMISObjects(rand.Reader).Execute,
+		temporalsdk_activity.RegisterOptions{Name: activities.AddPREMISObjectsName},
+	)
+
+	w.RegisterActivityWithOptions(
+		activities.NewAddPREMISEvent().Execute,
+		temporalsdk_activity.RegisterOptions{Name: activities.AddPREMISEventName},
+	)
+
+	w.RegisterActivityWithOptions(
+		activities.NewAddPREMISAgent().Execute,
+		temporalsdk_activity.RegisterOptions{Name: activities.AddPREMISAgentName},
 	)
 
 	if err := w.Start(); err != nil {

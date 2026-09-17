@@ -104,6 +104,7 @@ make pre-commit
 ## Available Activities
 * [Validate SIP Size](#validate-sip-size)
 * [Validate file formats](#validate-file-formats)
+* [Create premis.xml](#create-premisxml)
 
 ### Validate SIP Size
 Ensures the SIP is no bigger than 1 Terabyte.
@@ -115,6 +116,32 @@ The CSV must include a `PRONOM PUID` column. Kubernetes builds `dai-enduro-secre
 from `hack/kube/allowed_file_formats.csv` and mounts it at
 `/home/enduro/.config/allowed_file_formats.csv`.
 
+### Create premis.xml
+Generates a [PREMIS 3][premis] XML file that records ingest preservation
+actions performed during preprocessing as PREMIS events, for inclusion in the
+resulting AIP METS file.
+
+This activity is broken up into three activity files in `/internal/activities`:
+
+* `add_premis_objects.go`
+* `add_premis_event.go`
+* `add_premis_agent.go`
+
+The XML output is assembled via `/internal/premis/premis.go`.
+
+#### Steps
+* Run only after all SIP validations succeed
+* Create `metadata/premis.xml` (creating `metadata/` if needed)
+* Write PREMIS objects for each file in the SIP (`originalName` uses the
+  post-bag path `data/...`)
+* Write PREMIS events for each successful preprocessing task
+* Write the Enduro PREMIS agent
+* Bag the SIP so `premis.xml` is included in the payload
+
+#### Success criteria
+* A `premis.xml` file is generated with ingest events and stored in the
+  metadata directory
+
 ### Other activities
 The preprocessing child workflow also uses a
 number of other more general Enduro temporal activities, including:
@@ -124,6 +151,7 @@ number of other more general Enduro temporal activities, including:
 
 [Enduro development manual]: https://enduro.readthedocs.io/dev-manual/devel/
 [ffvalidate]: https://github.com/artefactual-sdps/temporal-activities/tree/main/ffvalidate
+[premis]: https://www.loc.gov/standards/premis/v3/
 [go]: https://go.dev/doc/install
 [make]: https://www.gnu.org/software/make/
 [gcc]: https://gcc.gnu.org/
