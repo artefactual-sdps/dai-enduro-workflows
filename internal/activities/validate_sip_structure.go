@@ -76,7 +76,7 @@ func (a *ValidateSIPStructure) Execute(
 				result.ValidationErrors = append(result.ValidationErrors, msg)
 			}
 
-			if path == "metadata/README.md" {
+			if path == "metadata/submissionDocumentation/README.md" {
 				hasReadme = true
 			}
 		}
@@ -90,7 +90,10 @@ func (a *ValidateSIPStructure) Execute(
 	if !result.HasMetadataDirectory {
 		result.ValidationErrors = append(result.ValidationErrors, "SIP Must include a top-level metadata directory")
 	} else if !hasReadme {
-		result.ValidationErrors = append(result.ValidationErrors, "Metadata directory must include a README.md file")
+		result.ValidationErrors = append(
+			result.ValidationErrors,
+			"metadata/submissionDocumentation directory must include a README.md file",
+		)
 	}
 	for _, dir := range dirs {
 		if dir == "." {

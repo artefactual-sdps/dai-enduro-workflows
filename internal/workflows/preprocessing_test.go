@@ -582,7 +582,7 @@ func (s *PreprocessingTestSuite) TestValidationErrors() {
 	).Return(
 		&activities.ValidateSIPStructureResult{
 			HasMetadataDirectory: true,
-			ValidationErrors:     []string{"Metadata directory must include a README.md file"},
+			ValidationErrors:     []string{"metadata/submissionDocumentation directory must include a README.md file"},
 		},
 		nil,
 	)
@@ -668,7 +668,7 @@ func (s *PreprocessingTestSuite) TestValidationErrors() {
 				},
 				{
 					Name:        "Validate the SIP structure",
-					Message:     "Content error: Invalid SIP structure:\n- Metadata directory must include a README.md file",
+					Message:     "Content error: Invalid SIP structure:\n- metadata/submissionDocumentation directory must include a README.md file",
 					Outcome:     childwf.TaskOutcomeValidationFailure,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
