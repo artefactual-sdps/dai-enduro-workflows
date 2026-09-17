@@ -23,7 +23,7 @@ func TestValidateFileAndFolder(t *testing.T) {
 		"Accepts a valid SIP tree": {
 			setup: func(t *testing.T) string {
 				t.Helper()
-				return fs.NewDir(t, "SIP_2025-10-20_IANUS1234_ABT",
+				return fs.NewDir(t, "SIP_2025-10-20_A1B2_ABT",
 					fs.WithFile("readme.txt", "hello"),
 					fs.WithDir("data",
 						fs.WithFile("payload.bin", "world"),

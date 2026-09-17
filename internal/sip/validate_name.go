@@ -12,13 +12,14 @@ const timeFormat = "2006-01-02" // YYYY-MM-DD
 var (
 	// SIP names MUST only use allowed characters: a-z; A-Z; 0-9; dash (-) and underscore (_)
 	alphaNumericRX = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
-	ianusRX        = regexp.MustCompile(`^IANUS\d{4}$`) // IANUS####
+	ianusRX        = regexp.MustCompile(`(?i)^[a-z0-9]{4}$`) // exactly 4 alphanumeric characters, case insensitive
 	lastSectionRX  = regexp.MustCompile(`^[A-Z]{3}$`)
 )
 
-// ValidateName checks that name matches SIP_YYYY-MM-DD_IANUS####_@@@
-// where #### is four digits and @@@ is three uppercase letters.
-// Example: SIP_2025-10-20_IANUS1234_ABT
+// ValidateName checks that name matches SIP_YYYY-MM-DD_####_@@@
+// where #### is exactly 4 alphanumeric characters (case insensitive)
+// and @@@ is three uppercase letters.
+// Example: SIP_2025-10-20_A1B2_ABT
 func ValidateName(name string) []string {
 	validationErrors := []string{}
 	if !alphaNumericRX.MatchString(name) {
@@ -47,7 +48,7 @@ func ValidateName(name string) []string {
 
 	section3 := sections[2]
 	if !ianusRX.MatchString(section3) {
-		msg := fmt.Sprintf("section 3 must be in format IANUS####, got: %s", section3)
+		msg := fmt.Sprintf("section 3 must be exactly 4 alphanumeric characters, got: %s", section3)
 		validationErrors = append(validationErrors, msg)
 	}
 
