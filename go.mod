@@ -5,8 +5,10 @@ go 1.26.6
 require (
 	github.com/artefactual-sdps/enduro v0.29.0
 	github.com/artefactual-sdps/temporal-activities v0.0.0-20260916160045-603f9642644f
+	github.com/beevik/etree v1.8.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/go-logr/logr v1.4.3
+	github.com/google/uuid v1.6.0
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
@@ -32,7 +34,6 @@ require (
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/renameio/v2 v2.0.2 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.2 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.28.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
