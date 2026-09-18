@@ -24,7 +24,7 @@ import (
 
 const (
 	sharedPath   = "/shared/path/"
-	validSIPName = "SIP_2025-10-20_IANUS1234_ABT"
+	validSIPName = "SIP_2025-10-20_A1B2_ABT"
 )
 
 type PreprocessingTestSuite struct {
