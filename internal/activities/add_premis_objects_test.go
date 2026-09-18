@@ -11,6 +11,7 @@ import (
 	"gotest.tools/v3/fs"
 
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/activities"
+	"github.com/artefactual-sdps/dai-enduro-workflows/internal/premis"
 )
 
 func TestAddPREMISObjects(t *testing.T) {
@@ -21,7 +22,7 @@ func TestAddPREMISObjects(t *testing.T) {
 		fs.WithDir("metadata",
 			fs.WithFile("README.md", ""),
 			fs.WithFile("metadata.csv", ""),
-			fs.WithFile("premis.xml", "should-be-ignored"),
+			fs.WithFile("premis.xml", premis.EmptyXML),
 		),
 	)
 

@@ -43,7 +43,7 @@ func (a *AddPREMISObjectsActivity) Execute(
 		return nil, err
 	}
 
-	doc, err := premis.NewDoc()
+	doc, err := premis.ParseOrInitialize(params.PREMISFilePath)
 	if err != nil {
 		return nil, err
 	}
