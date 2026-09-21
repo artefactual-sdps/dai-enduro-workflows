@@ -704,8 +704,10 @@ func (s *PreprocessingTestSuite) TestValidationErrors() {
 					CompletedAt: s.env.Now().UTC(),
 				},
 				{
-					Name:        "Validate file formats",
-					Message:     "Content error: Invalid file formats:\n- file format \"fmt/11\" not allowed: \"payload.bin\"",
+					Name: "Validate file formats",
+					Message: "Content error: One or more file formats are not allowed or can not be identified:\n\n" +
+						"- file format \"fmt/11\" not allowed: \"payload.bin\"\n\n" +
+						"Please review the SIP and remove or replace all disallowed, empty, or unidentified files.",
 					Outcome:     childwf.TaskOutcomeValidationFailure,
 					StartedAt:   s.env.Now().UTC(),
 					CompletedAt: s.env.Now().UTC(),
