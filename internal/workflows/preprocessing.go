@@ -10,6 +10,7 @@ import (
 	"github.com/artefactual-sdps/temporal-activities/bagcreate"
 	"github.com/artefactual-sdps/temporal-activities/bagextract"
 	"github.com/artefactual-sdps/temporal-activities/ffvalidate"
+	"github.com/artefactual-sdps/temporal-activities/jsonvalidate"
 	"go.artefactual.dev/tools/temporal"
 	temporalsdk_temporal "go.temporal.io/sdk/temporal"
 	temporalsdk_workflow "go.temporal.io/sdk/workflow"
@@ -211,13 +212,13 @@ func (w *PreprocessingWorkflow) Execute(
 	// Validate SIP Metadata
 	if validateSIPStructureResult.HasMetadataDirectory {
 		validateSIPMetadataTask := result.NewTask(temporalsdk_workflow.Now(ctx), "Validate the SIP metadata")
-		var validateSIPMetadataResult activities.ValidateSIPMetadataResult
+		var validateSIPMetadataResult jsonvalidate.Result
 		err = temporalsdk_workflow.ExecuteActivity(
 			withFilesystemActivityOpts(ctx),
-			activities.ValidateSIPMetadataName,
-			&activities.ValidateSIPMetadataParams{
-				MetadataPath: filepath.Join(sourcePath, "metadata", "metadata.csv"),
-				SchemaPath:   w.cfg.CSVValidate.SchemaPath,
+			jsonvalidate.Name,
+			&jsonvalidate.Params{
+				JSONPath:   filepath.Join(sourcePath, "metadata", "metadata.json"),
+				SchemaPath: w.cfg.JSONValidate.SchemaPath,
 			},
 		).Get(ctx, &validateSIPMetadataResult)
 		if err != nil {
@@ -229,11 +230,11 @@ func (w *PreprocessingWorkflow) Execute(
 			)
 			return result, nil
 		}
-		if len(validateSIPMetadataResult.ValidationErrors) > 0 {
+		if len(validateSIPMetadataResult.Failures) > 0 {
 			result.ValidationError(
 				temporalsdk_workflow.Now(ctx),
 				validateSIPMetadataTask,
-				fmt.Sprintf("Invalid SIP metadata:\n%s", ul(validateSIPMetadataResult.ValidationErrors)),
+				fmt.Sprintf("Invalid SIP metadata:\n%s", ul(validateSIPMetadataResult.Failures)),
 			)
 		} else {
 			validateSIPMetadataTask.Succeed(temporalsdk_workflow.Now(ctx), "The SIP metadata is valid")

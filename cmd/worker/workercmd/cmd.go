@@ -7,6 +7,7 @@ import (
 	"github.com/artefactual-sdps/temporal-activities/bagcreate"
 	"github.com/artefactual-sdps/temporal-activities/bagextract"
 	"github.com/artefactual-sdps/temporal-activities/ffvalidate"
+	"github.com/artefactual-sdps/temporal-activities/jsonvalidate"
 	"github.com/go-logr/logr"
 	"go.artefactual.dev/tools/temporal"
 	temporalsdk_activity "go.temporal.io/sdk/activity"
@@ -17,7 +18,6 @@ import (
 
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/activities"
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/config"
-	"github.com/artefactual-sdps/dai-enduro-workflows/internal/csvs"
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/workflows"
 )
 
@@ -82,8 +82,8 @@ func (m *Main) Run(ctx context.Context) error {
 	)
 
 	w.RegisterActivityWithOptions(
-		activities.NewValidateSIPMetadata(csvs.NewCSVValidatorCmd()).Execute,
-		temporalsdk_activity.RegisterOptions{Name: activities.ValidateSIPMetadataName},
+		jsonvalidate.New(jsonvalidate.NewValidator()).Execute,
+		temporalsdk_activity.RegisterOptions{Name: jsonvalidate.Name},
 	)
 
 	w.RegisterActivityWithOptions(

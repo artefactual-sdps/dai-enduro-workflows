@@ -1,0 +1,258 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/artefactual-sdps/dai-enduro-workflows/blob/main/hack/kube/dai-relaxed-schema.json",
+  "title": "DAI relaxed metadata",
+  "description": "DAI SIP metadata.json. The document is an array of rows. Dotted names are property names, not nested objects. filename, identifier, and identifier.ianus are required non-empty strings. Other properties are optional strings and may be omitted or empty.",
+  "type": "array",
+  "$defs": {
+    "requiredString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "optionalString": {
+      "type": "string"
+    }
+  },
+  "items": {
+    "type": "object",
+    "properties": {
+      "filename": {
+        "$ref": "#/$defs/requiredString"
+      },
+      "identifier": {
+        "$ref": "#/$defs/requiredString"
+      },
+      "identifier.identifierType": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "identifier.ianus": {
+        "$ref": "#/$defs/requiredString"
+      },
+      "creator.creatorName": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "creator.nameType": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "creator.givenName": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "creator.familyName": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "creator.nameIdentifier": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "creator.nameIdentifierScheme": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "creator.affiliation": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "creator.affiliationIdentifier": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "creator.affiliationIdentifierScheme": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "title": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "title.titleType": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "publisher": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "publisher.publisherIdentifier": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "publisher.publisherIdentifierScheme": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "publicationYear": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "resourceTypeGeneral": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "subject": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "subject.subjectScheme": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "subject.schemeURI": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "subject.valueURI": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "project.title": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "project.identifier": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "contributor.contributorType": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "contributor.contributorName": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "contributor.nameType": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "contributor.givenName": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "contributor.familyName": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "contributor.nameIdentifier": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "contributor.nameIdentifierScheme": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "contributor.affiliation": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "contributor.affiliationidentifier": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "contributor.affiliationIdentifierScheme": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "date": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "date.dateType": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "date.dateInformation": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "language": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "alternateIdentifier.alternateIdentifier": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "alternateIdentifier.alternateIdentifierType": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "relatedIdentifier": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "relatedIdentifier.relatedIdentifierType": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "relatedIdentifier.relationType": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "relatedIdentifier.resourceTypeGeneral": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "size": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "format": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "version": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "rights": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "rights.rightsIdentifier": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "rights.rightsURI": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "rights.rightsIdentifierScheme": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "rights.schemeURI": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "rights.information": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "description": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "description.descriptionType": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "geoLocation.geoLocationPlace": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "geoLocation.identifier": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "geoLocation.identifierType": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "geoLocation.identifierURI": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "geoLocation.geoLocationBox.westBoundLongitude": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "geoLocation.geoLocationBox.eastBoundLongitude": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "geoLocation.geoLocationBox.southBoundLatitude": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "geoLocation.geoLocationBox.northBoundLatitude": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "fundingReference.funderName": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "fundingReference.funderIdentifier": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "fundingReference.funderIdentifierType": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "fundingReference.awardNumber": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "fundingReference.awardURI": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "fundingReference.awardTitle": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "site.name": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "site.identifier": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "site.type": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "temporalCoverage": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "methodology": {
+        "$ref": "#/$defs/optionalString"
+      },
+      "instrumentUsed": {
+        "$ref": "#/$defs/optionalString"
+      }
+    },
+    "required": [
+      "filename",
+      "identifier",
+      "identifier.ianus"
+    ],
+    "additionalProperties": false
+  }
+}
