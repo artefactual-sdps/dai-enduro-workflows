@@ -200,7 +200,9 @@ func (w *PreprocessingWorkflow) Execute(
 		result.ValidationError(
 			temporalsdk_workflow.Now(ctx),
 			validateFileFormatsTask,
-			fmt.Sprintf("Invalid file formats:\n%s", ul(ffvalidateResult.Failures)),
+			"One or more file formats are not allowed or can not be identified:",
+			ul(ffvalidateResult.Failures),
+			"Please review the SIP and remove or replace all disallowed, empty, or unidentified files.",
 		)
 	} else {
 		validateFileFormatsTask.Succeed(temporalsdk_workflow.Now(ctx), "File formats are valid")
