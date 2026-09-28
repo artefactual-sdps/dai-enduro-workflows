@@ -23,8 +23,8 @@ github.com/andybalholm/brotli v1.2.0 h1:ukwgCxwYrmACq68yiUqwIWnGY0cTPox/M94sVwTo
 github.com/andybalholm/brotli v1.2.0/go.mod h1:rzTDkvFWvIrjDXZHkuS16NPggd91W3kUSvPlQ1pLaKY=
 github.com/artefactual-labs/bine v0.28.3 h1:pDPcxuxjL102JPa3aG7oitYkuZxRJqVZEoW1IHBVtjE=
 github.com/artefactual-labs/bine v0.28.3/go.mod h1:E0JTUTzaakkToz6UlUOViEMkCCzHbGTKw5G5mgeYj0M=
-github.com/artefactual-sdps/enduro v0.29.0 h1:0Eciws/lbDpRwITzVDDYBSiGKE5kX3BIz1lI030lDWY=
-github.com/artefactual-sdps/enduro v0.29.0/go.mod h1:im5aNrCN9eL4vsWAETfHzGS3BZ8dE3CysxaptbAadg4=
+github.com/artefactual-sdps/enduro v0.34.1 h1:sAyOXK4Z5+lTF/fwH8mIMwT29+Ino4fu72PoGLcvSDs=
+github.com/artefactual-sdps/enduro v0.34.1/go.mod h1:jxkEMwVcKxGfQgrp2dy5C3Kb3oDalO6Mr7+Ocbd2o8A=
 github.com/artefactual-sdps/temporal-activities v0.0.0-20260924180237-fb0bc739e67b h1:uLdAnybk7hY5/BvpjL7gCEi3ijOJTbAXaBvhYHQOOU0=
 github.com/artefactual-sdps/temporal-activities v0.0.0-20260924180237-fb0bc739e67b/go.mod h1:enm9OyPiFiOmPrICLPOKlsE4sxfzrPrMq066B41Saao=
 github.com/beevik/etree v1.8.0 h1:TOfpQtMZ3ZuG9f2ZnLvsbOOVxrjTvE0qbYb5D0p44j0=
