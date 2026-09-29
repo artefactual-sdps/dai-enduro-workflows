@@ -9,6 +9,7 @@ import (
 	"github.com/artefactual-sdps/temporal-activities/bagcreate"
 	"github.com/artefactual-sdps/temporal-activities/bagextract"
 	"github.com/artefactual-sdps/temporal-activities/ffvalidate"
+	"github.com/artefactual-sdps/temporal-activities/jsonvalidate"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	temporalsdk_activity "go.temporal.io/sdk/activity"
@@ -17,7 +18,6 @@ import (
 
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/activities"
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/config"
-	"github.com/artefactual-sdps/dai-enduro-workflows/internal/csvs"
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/premis"
 	"github.com/artefactual-sdps/dai-enduro-workflows/internal/workflows"
 )
@@ -65,8 +65,8 @@ func (s *PreprocessingTestSuite) SetupTest(cfg config.Configuration) {
 	)
 
 	s.env.RegisterActivityWithOptions(
-		activities.NewValidateSIPMetadata(csvs.NewCSVValidatorCmd()).Execute,
-		temporalsdk_activity.RegisterOptions{Name: activities.ValidateSIPMetadataName},
+		jsonvalidate.New(jsonvalidate.NewValidator()).Execute,
+		temporalsdk_activity.RegisterOptions{Name: jsonvalidate.Name},
 	)
 
 	s.env.RegisterActivityWithOptions(
@@ -103,8 +103,8 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 	relPath := validSIPName
 	s.SetupTest(config.Configuration{
 		Preprocessing: config.PreprocessingConfig{
-			CSVValidate: config.CSVValidateConfig{
-				SchemaPath: "/schema/dai-relaxed-schema.csvs",
+			JSONValidate: config.JSONValidateConfig{
+				SchemaPath: "/schema/dai-relaxed-schema.json",
 			},
 		},
 	})
@@ -158,14 +158,14 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 		nil,
 	)
 	s.env.OnActivity(
-		activities.ValidateSIPMetadataName,
+		jsonvalidate.Name,
 		sessionCtx,
-		&activities.ValidateSIPMetadataParams{
-			MetadataPath: filepath.Join(srcPath, "metadata", "metadata.csv"),
-			SchemaPath:   "/schema/dai-relaxed-schema.csvs",
+		&jsonvalidate.Params{
+			JSONPath:   filepath.Join(srcPath, "metadata", "metadata.json"),
+			SchemaPath: "/schema/dai-relaxed-schema.json",
 		},
 	).Return(
-		&activities.ValidateSIPMetadataResult{},
+		&jsonvalidate.Result{},
 		nil,
 	)
 	mockPREMISActivities(s.env, sessionCtx, srcPath)
@@ -563,8 +563,8 @@ func (s *PreprocessingTestSuite) TestValidationErrors() {
 	relPath := "transfer"
 	s.SetupTest(config.Configuration{
 		Preprocessing: config.PreprocessingConfig{
-			CSVValidate: config.CSVValidateConfig{
-				SchemaPath: "/schema/dai-relaxed-schema.csvs",
+			JSONValidate: config.JSONValidateConfig{
+				SchemaPath: "/schema/dai-relaxed-schema.json",
 			},
 		},
 	})
@@ -627,15 +627,15 @@ func (s *PreprocessingTestSuite) TestValidationErrors() {
 		nil,
 	)
 	s.env.OnActivity(
-		activities.ValidateSIPMetadataName,
+		jsonvalidate.Name,
 		sessionCtx,
-		&activities.ValidateSIPMetadataParams{
-			MetadataPath: filepath.Join(srcPath, "metadata", "metadata.csv"),
-			SchemaPath:   "/schema/dai-relaxed-schema.csvs",
+		&jsonvalidate.Params{
+			JSONPath:   filepath.Join(srcPath, "metadata", "metadata.json"),
+			SchemaPath: "/schema/dai-relaxed-schema.json",
 		},
 	).Return(
-		&activities.ValidateSIPMetadataResult{
-			ValidationErrors: []string{
+		&jsonvalidate.Result{
+			Failures: []string{
 				`notEmpty fails for line: 1, column: filename, value: ""`,
 				`notEmpty fails for line: 1, column: identifier, value: ""`,
 				`notEmpty fails for line: 1, column: identifier.ianus, value: ""`,

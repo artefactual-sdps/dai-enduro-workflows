@@ -4,7 +4,7 @@ go 1.26.6
 
 require (
 	github.com/artefactual-sdps/enduro v0.34.1
-	github.com/artefactual-sdps/temporal-activities v0.0.0-20260916160045-603f9642644f
+	github.com/artefactual-sdps/temporal-activities v0.0.0-20260924180237-fb0bc739e67b
 	github.com/beevik/etree v1.8.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/go-logr/logr v1.4.4
@@ -62,6 +62,7 @@ require (
 	github.com/ross-spencer/spargo v0.4.1 // indirect
 	github.com/ross-spencer/wikiprov v1.0.0 // indirect
 	github.com/sagikazarmark/locafero v0.12.0 // indirect
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3 // indirect
 	github.com/sorairolake/lzip-go v0.3.8 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect

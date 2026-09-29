@@ -31,8 +31,8 @@ sharedPath = "/home/enduro/shared"
 [preprocessing.bagCreate]
 checksumAlgorithm = "sha512"
 
-[preprocessing.csvValidate]
-schemaPath = "/home/enduro/.config/dai-relaxed-schema.csvs"
+[preprocessing.jsonValidate]
+schemaPath = "/home/enduro/.config/dai-relaxed-schema.json"
 
 [preprocessing.fileFormat]
 allowlistPath = "/home/enduro/.config/allowed_file_formats.csv"
@@ -104,6 +104,7 @@ make pre-commit
 ## Available Activities
 * [Validate SIP Size](#validate-sip-size)
 * [Validate file formats](#validate-file-formats)
+* [Validate SIP metadata](#validate-sip-metadata)
 * [Create premis.xml](#create-premisxml)
 
 ### Validate SIP Size
@@ -115,6 +116,13 @@ using [`ffvalidate`][ffvalidate].
 The CSV must include a `PRONOM PUID` column. Kubernetes builds `dai-enduro-secret`
 from `hack/kube/allowed_file_formats.csv` and mounts it at
 `/home/enduro/.config/allowed_file_formats.csv`.
+
+### Validate SIP metadata
+Checks `metadata/metadata.json` against a JSON Schema using
+[`jsonvalidate`][jsonvalidate]. Kubernetes builds `dai-enduro-secret` from
+`hack/kube/dai-relaxed-schema.json` and mounts it at
+`/home/enduro/.config/dai-relaxed-schema.json`. The worker reads that path from
+`preprocessing.jsonValidate.schemaPath`.
 
 ### Create premis.xml
 Generates a [PREMIS 3][premis] XML file that records ingest preservation
@@ -148,9 +156,11 @@ number of other more general Enduro temporal activities, including:
 - `bagcreate`
 - `bagextract`
 - `ffvalidate`
+- `jsonvalidate`
 
 [Enduro development manual]: https://enduro.readthedocs.io/dev-manual/devel/
 [ffvalidate]: https://github.com/artefactual-sdps/temporal-activities/tree/main/ffvalidate
+[jsonvalidate]: https://github.com/artefactual-sdps/temporal-activities/tree/main/jsonvalidate
 [premis]: https://www.loc.gov/standards/premis/v3/
 [go]: https://go.dev/doc/install
 [make]: https://www.gnu.org/software/make/
