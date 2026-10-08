@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io/fs"
 	"path/filepath"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/dustin/go-humanize"
 	"go.artefactual.dev/tools/temporal"
@@ -20,10 +22,11 @@ type CheckSIPInfoParams struct {
 }
 
 type CheckSIPInfoResult struct {
-	SizeInBytes         uint64
-	NumberOfFiles       uint
-	NumberOfDirectories uint
-	SizeHuman           string
+	SizeInBytes                   uint64
+	NumberOfFiles                 uint
+	NumberOfDirectories           uint
+	SizeHuman                     string
+	FileAndFolderValidationErrors []string
 }
 
 type CheckSIPInfo struct{}
@@ -51,6 +54,23 @@ func collectSIPInfo(path string) (*CheckSIPInfoResult, error) {
 	err := filepath.WalkDir(path, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
+		}
+		relativePath, err := filepath.Rel(path, p)
+		if err != nil {
+			return err
+		}
+		// Ignore root.
+		// if relativePath == "." {
+		// 	return nil
+		// }
+
+		if utf8.RuneCountInString(relativePath) > MAX_FILE_PATH_LENGTH {
+			msg := fmt.Sprintf("%q has more than %d characters", relativePath, MAX_FILE_PATH_LENGTH)
+			result.FileAndFolderValidationErrors = append(result.FileAndFolderValidationErrors, msg)
+		}
+		if strings.Count(relativePath, string(filepath.Separator)) > MAX_NESTED_FOLDERS {
+			msg := fmt.Sprintf("%q exceeds the allowed nested folder limit of %d", relativePath, MAX_NESTED_FOLDERS)
+			result.FileAndFolderValidationErrors = append(result.FileAndFolderValidationErrors, msg)
 		}
 
 		if d.IsDir() {
