@@ -77,11 +77,6 @@ func (m *Main) Run(ctx context.Context) error {
 	)
 
 	w.RegisterActivityWithOptions(
-		activities.NewValidateFileAndFolder().Execute,
-		temporalsdk_activity.RegisterOptions{Name: activities.ValidateFileAndFolderName},
-	)
-
-	w.RegisterActivityWithOptions(
 		jsonvalidate.New(jsonvalidate.NewValidator()).Execute,
 		temporalsdk_activity.RegisterOptions{Name: jsonvalidate.Name},
 	)
