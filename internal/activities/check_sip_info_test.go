@@ -42,7 +42,8 @@ func TestCheckSIPInfo(t *testing.T) {
 						strings.Repeat("a", activities.MAX_FILE_PATH_LENGTH+1),
 						activities.MAX_FILE_PATH_LENGTH,
 					),
-				}},
+				},
+			},
 		},
 		"Returns zero for an empty directory": {
 			setup: func(t *testing.T) string {
