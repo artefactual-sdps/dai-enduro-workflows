@@ -16,22 +16,22 @@ import (
 
 const (
 	CheckSIPInfoName     = "check-sip-info"
-	MAX_FILE_PATH_LENGTH = 230
-	MAX_NESTED_FOLDERS   = 5
+	MaxFilePathLength    = 230
+	maxNestedDirectories = 5
 )
 
-var FolderNameAllowedCharacters = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+var directoryNameAllowedChars = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 
 type CheckSIPInfoParams struct {
 	Path string
 }
 
 type CheckSIPInfoResult struct {
-	SizeInBytes                   uint64
-	NumberOfFiles                 uint
-	NumberOfDirectories           uint
-	SizeHuman                     string
-	FileAndFolderValidationErrors []string
+	SizeInBytes         uint64
+	NumberOfFiles       uint
+	NumberOfDirectories uint
+	SizeHuman           string
+	ValidationErrors    []string
 }
 
 type CheckSIPInfo struct{}
@@ -56,7 +56,7 @@ func (a *CheckSIPInfo) Execute(ctx context.Context, params *CheckSIPInfoParams) 
 
 func collectSIPInfo(path string) (*CheckSIPInfoResult, error) {
 	var result CheckSIPInfoResult
-	uniqueNameMap := map[string]struct{}{}
+	uniqueNames := map[string]struct{}{}
 	err := filepath.WalkDir(path, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -72,32 +72,36 @@ func collectSIPInfo(path string) (*CheckSIPInfoResult, error) {
 			return err
 		}
 
-		if utf8.RuneCountInString(relativePath) > MAX_FILE_PATH_LENGTH {
-			msg := fmt.Sprintf("%q has more than %d characters", relativePath, MAX_FILE_PATH_LENGTH)
-			result.FileAndFolderValidationErrors = append(result.FileAndFolderValidationErrors, msg)
+		if utf8.RuneCountInString(relativePath) > MaxFilePathLength {
+			msg := fmt.Sprintf(
+				"the path %q exceeds the maximum of %d allowed characters",
+				relativePath,
+				MaxFilePathLength,
+			)
+			result.ValidationErrors = append(result.ValidationErrors, msg)
 		}
 
-		if strings.Count(relativePath, string(filepath.Separator)) > MAX_NESTED_FOLDERS {
-			msg := fmt.Sprintf("%q exceeds the allowed nested folder limit of %d", relativePath, MAX_NESTED_FOLDERS)
-			result.FileAndFolderValidationErrors = append(result.FileAndFolderValidationErrors, msg)
+		if strings.Count(relativePath, string(filepath.Separator)) > maxNestedDirectories {
+			msg := fmt.Sprintf("%q exceeds the allowed nested folder limit of %d", relativePath, maxNestedDirectories)
+			result.ValidationErrors = append(result.ValidationErrors, msg)
 		}
 
 		base := filepath.Base(p)
 		if d.IsDir() {
-			if !FolderNameAllowedCharacters.MatchString(base) {
+			if !directoryNameAllowedChars.MatchString(base) {
 				msg := fmt.Sprintf(
 					"%q has disallowed characters, allowed: a-z A-Z 0-9 dash (-) and underscore (_)",
 					base,
 				)
-				result.FileAndFolderValidationErrors = append(result.FileAndFolderValidationErrors, msg)
+				result.ValidationErrors = append(result.ValidationErrors, msg)
 			}
 
 			// Folder names must be unique.
-			if _, found := uniqueNameMap[base]; found {
+			if _, found := uniqueNames[base]; found {
 				msg := fmt.Sprintf("folder %q has a duplicate name %q in the SIP", relativePath, base)
-				result.FileAndFolderValidationErrors = append(result.FileAndFolderValidationErrors, msg)
+				result.ValidationErrors = append(result.ValidationErrors, msg)
 			} else {
-				uniqueNameMap[base] = struct{}{}
+				uniqueNames[base] = struct{}{}
 			}
 
 			// Ignore the root for the directory count.

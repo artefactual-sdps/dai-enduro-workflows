@@ -80,33 +80,33 @@ func (w *PreprocessingWorkflow) Execute(
 	}
 
 	taskValidateSize := result.NewTask(temporalsdk_workflow.Now(ctx), "Validate the SIP size")
-	var validatSIPSizeResult activities.CheckSIPInfoResult
+	var validateSIPInfo activities.CheckSIPInfoResult
 	err = temporalsdk_workflow.ExecuteActivity(
 		withFilesystemActivityOpts(ctx),
 		activities.CheckSIPInfoName,
 		&activities.CheckSIPInfoParams{Path: sourcePath},
-	).Get(ctx, &validatSIPSizeResult)
+	).Get(ctx, &validateSIPInfo)
 	if err != nil {
 		logger.Error("System error", "message", err.Error())
 		result.SystemError(temporalsdk_workflow.Now(ctx), taskValidateSize, "SIP validation has failed")
 		return result, nil
 	}
 
-	if validatSIPSizeResult.SizeInBytes > MAX_BYTES {
+	if validateSIPInfo.SizeInBytes > MAX_BYTES {
 		result.ValidationError(temporalsdk_workflow.Now(ctx), taskValidateSize, "SIP is bigger than 1 Terabyte")
 	} else {
-		taskValidateSize.Succeed(temporalsdk_workflow.Now(ctx), "SIP size checked: %s", validatSIPSizeResult.SizeHuman)
+		taskValidateSize.Succeed(temporalsdk_workflow.Now(ctx), "SIP size checked: %s", validateSIPInfo.SizeHuman)
 	}
 
 	{
 		// Payload size validation.
 		validationErrors := []string{}
 		taskValidatePayloadSize := result.NewTask(temporalsdk_workflow.Now(ctx), "Validate the SIP payload")
-		if validatSIPSizeResult.NumberOfFiles > MAX_FILES {
+		if validateSIPInfo.NumberOfFiles > MAX_FILES {
 			msg := fmt.Sprintf("SIP payload has more than %d files", MAX_FILES)
 			validationErrors = append(validationErrors, msg)
 		}
-		if validatSIPSizeResult.NumberOfDirectories > MAX_DIRECTORIES {
+		if validateSIPInfo.NumberOfDirectories > MAX_DIRECTORIES {
 			msg := fmt.Sprintf("SIP payload has more than %d directories", MAX_DIRECTORIES)
 			validationErrors = append(validationErrors, msg)
 		}
@@ -117,24 +117,24 @@ func (w *PreprocessingWorkflow) Execute(
 			taskValidatePayloadSize.Succeed(
 				temporalsdk_workflow.Now(ctx),
 				"SIP payload size checked. Files: %d - Directories: %d",
-				validatSIPSizeResult.NumberOfFiles,
-				validatSIPSizeResult.NumberOfDirectories,
+				validateSIPInfo.NumberOfFiles,
+				validateSIPInfo.NumberOfDirectories,
 			)
 		}
 		// Stop before walking the SIP when it exceeds size or payload limits.
-		if validatSIPSizeResult.SizeInBytes > MAX_BYTES ||
-			validatSIPSizeResult.NumberOfFiles > MAX_FILES ||
-			validatSIPSizeResult.NumberOfDirectories > MAX_DIRECTORIES {
+		if validateSIPInfo.SizeInBytes > MAX_BYTES ||
+			validateSIPInfo.NumberOfFiles > MAX_FILES ||
+			validateSIPInfo.NumberOfDirectories > MAX_DIRECTORIES {
 			return result, nil
 		}
 	}
 
 	validateFileAndFolderNamesTask := result.NewTask(temporalsdk_workflow.Now(ctx), "Validate file and folder names")
-	if len(validatSIPSizeResult.FileAndFolderValidationErrors) > 0 {
+	if len(validateSIPInfo.ValidationErrors) > 0 {
 		result.ValidationError(
 			temporalsdk_workflow.Now(ctx),
 			validateFileAndFolderNamesTask,
-			fmt.Sprintf("Invalid file and folder names:\n%s", ul(validatSIPSizeResult.FileAndFolderValidationErrors)),
+			fmt.Sprintf("Invalid file and folder names:\n%s", ul(validateSIPInfo.ValidationErrors)),
 		)
 	} else {
 		validateFileAndFolderNamesTask.Succeed(temporalsdk_workflow.Now(ctx), "File and folder names are valid")
@@ -237,7 +237,7 @@ func (w *PreprocessingWorkflow) Execute(
 		},
 		{
 			Detail:        `name="Validate the SIP size"`,
-			OutcomeDetail: fmt.Sprintf("SIP size checked: %s", validatSIPSizeResult.SizeHuman),
+			OutcomeDetail: fmt.Sprintf("SIP size checked: %s", validateSIPInfo.SizeHuman),
 		},
 		{
 			Detail:        `name="Validate the SIP payload"`,

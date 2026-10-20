@@ -568,7 +568,7 @@ func (s *PreprocessingTestSuite) TestValidationErrors() {
 			SizeInBytes:         1024,
 			NumberOfFiles:       1,
 			NumberOfDirectories: 1,
-			FileAndFolderValidationErrors: []string{
+			ValidationErrors: []string{
 				`"bad folder" has disallowed characters, allowed: a-z A-Z 0-9 dash (-) and underscore (_)`,
 				`folder "other/data" has a duplicate name "data" in the SIP`,
 			},
