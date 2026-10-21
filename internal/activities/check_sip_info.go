@@ -62,7 +62,7 @@ func collectSIPInfo(path string) (*CheckSIPInfoResult, error) {
 			return err
 		}
 
-		// Ignore the root for the directory count.
+		// Ignore the root for the directory count and validation.
 		if p == path && d.IsDir() {
 			return nil
 		}
@@ -90,7 +90,7 @@ func collectSIPInfo(path string) (*CheckSIPInfoResult, error) {
 		if d.IsDir() {
 			if !directoryNameAllowedChars.MatchString(base) {
 				msg := fmt.Sprintf(
-					"%q has disallowed characters, allowed: a-z A-Z 0-9 dash (-) and underscore (_)",
+					"%q has disallowed characters, allowed: letters (a-z, A-Z), numbers (0-9), dash (-), and underscore (_)",
 					base,
 				)
 				result.ValidationErrors = append(result.ValidationErrors, msg)
@@ -102,11 +102,6 @@ func collectSIPInfo(path string) (*CheckSIPInfoResult, error) {
 				result.ValidationErrors = append(result.ValidationErrors, msg)
 			} else {
 				uniqueNames[base] = struct{}{}
-			}
-
-			// Ignore the root for the directory count.
-			if p == path {
-				return nil
 			}
 
 			result.NumberOfDirectories++

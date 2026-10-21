@@ -569,7 +569,7 @@ func (s *PreprocessingTestSuite) TestValidationErrors() {
 			NumberOfFiles:       1,
 			NumberOfDirectories: 1,
 			ValidationErrors: []string{
-				`"bad folder" has disallowed characters, allowed: a-z A-Z 0-9 dash (-) and underscore (_)`,
+				`"bad folder" has disallowed characters, allowed: letters (a-z, A-Z), numbers (0-9), dash (-), and underscore (_)`,
 				`folder "other/data" has a duplicate name "data" in the SIP`,
 			},
 		},
@@ -660,7 +660,7 @@ func (s *PreprocessingTestSuite) TestValidationErrors() {
 				{
 					Name: "Validate file and folder names",
 					Message: "Content error: Invalid file and folder names:\n" +
-						"- \"bad folder\" has disallowed characters, allowed: a-z A-Z 0-9 dash (-) and underscore (_)\n" +
+						"- \"bad folder\" has disallowed characters, allowed: letters (a-z, A-Z), numbers (0-9), dash (-), and underscore (_)\n" +
 						"- folder \"other/data\" has a duplicate name \"data\" in the SIP",
 					Outcome:     childwf.TaskOutcomeValidationFailure,
 					StartedAt:   s.env.Now().UTC(),

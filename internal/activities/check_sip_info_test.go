@@ -122,7 +122,7 @@ func TestCheckSIPInfo(t *testing.T) {
 				SizeHuman:           "12 B",
 			},
 		},
-		"Ignores the walk on root": {
+		"Skips validation of the root directory": {
 			setup: func(t *testing.T) string {
 				t.Helper()
 				return fs.NewDir(t, "SIP with spaces",
@@ -153,7 +153,7 @@ func TestCheckSIPInfo(t *testing.T) {
 				NumberOfDirectories: 1,
 				SizeHuman:           "1 B",
 				ValidationErrors: []string{
-					`"bad folder" has disallowed characters, allowed: a-z A-Z 0-9 dash (-) and underscore (_)`,
+					`"bad folder" has disallowed characters, allowed: letters (a-z, A-Z), numbers (0-9), dash (-), and underscore (_)`,
 				},
 			},
 		},
@@ -172,7 +172,7 @@ func TestCheckSIPInfo(t *testing.T) {
 				NumberOfDirectories: 1,
 				SizeHuman:           "1 B",
 				ValidationErrors: []string{
-					`"data.dir" has disallowed characters, allowed: a-z A-Z 0-9 dash (-) and underscore (_)`,
+					`"data.dir" has disallowed characters, allowed: letters (a-z, A-Z), numbers (0-9), dash (-), and underscore (_)`,
 				},
 			},
 		},
@@ -255,7 +255,7 @@ func TestCheckSIPInfo(t *testing.T) {
 				NumberOfDirectories: 4,
 				SizeHuman:           "3 B",
 				ValidationErrors: []string{
-					`"bad name" has disallowed characters, allowed: a-z A-Z 0-9 dash (-) and underscore (_)`,
+					`"bad name" has disallowed characters, allowed: letters (a-z, A-Z), numbers (0-9), dash (-), and underscore (_)`,
 					`folder "other/data" has a duplicate name "data" in the SIP`,
 				},
 			},
