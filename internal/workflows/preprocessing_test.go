@@ -55,11 +55,6 @@ func (s *PreprocessingTestSuite) SetupTest(cfg config.Configuration) {
 	)
 
 	s.env.RegisterActivityWithOptions(
-		activities.NewValidateFileAndFolder().Execute,
-		temporalsdk_activity.RegisterOptions{Name: activities.ValidateFileAndFolderName},
-	)
-
-	s.env.RegisterActivityWithOptions(
 		activities.NewValidateSIPStructure().Execute,
 		temporalsdk_activity.RegisterOptions{Name: activities.ValidateSIPStructureName},
 	)
@@ -131,14 +126,6 @@ func (s *PreprocessingTestSuite) TestSuccess() {
 			NumberOfFiles:       1,
 			NumberOfDirectories: 1,
 		},
-		nil,
-	)
-	s.env.OnActivity(
-		activities.ValidateFileAndFolderName,
-		sessionCtx,
-		&activities.ValidateFileAndFolderParams{Path: filepath.Join(sharedPath, relPath)},
-	).Return(
-		&activities.ValidateFileAndFolderResult{},
 		nil,
 	)
 	s.env.OnActivity(
@@ -293,14 +280,6 @@ func (s *PreprocessingTestSuite) TestSystemError() {
 			SizeHuman:   "1.0 kB",
 			SizeInBytes: 1024,
 		},
-		nil,
-	)
-	s.env.OnActivity(
-		activities.ValidateFileAndFolderName,
-		sessionCtx,
-		&activities.ValidateFileAndFolderParams{Path: filepath.Join(sharedPath, relPath)},
-	).Return(
-		&activities.ValidateFileAndFolderResult{},
 		nil,
 	)
 	s.env.OnActivity(
@@ -589,17 +568,8 @@ func (s *PreprocessingTestSuite) TestValidationErrors() {
 			SizeInBytes:         1024,
 			NumberOfFiles:       1,
 			NumberOfDirectories: 1,
-		},
-		nil,
-	)
-	s.env.OnActivity(
-		activities.ValidateFileAndFolderName,
-		sessionCtx,
-		&activities.ValidateFileAndFolderParams{Path: srcPath},
-	).Return(
-		&activities.ValidateFileAndFolderResult{
 			ValidationErrors: []string{
-				`"bad folder" has disallowed characters, allowed: a-z A-Z 0-9 dash (-) and underscore (_)`,
+				`"bad folder" has disallowed characters, allowed: letters (a-z, A-Z), numbers (0-9), dash (-), and underscore (_)`,
 				`folder "other/data" has a duplicate name "data" in the SIP`,
 			},
 		},
@@ -690,7 +660,7 @@ func (s *PreprocessingTestSuite) TestValidationErrors() {
 				{
 					Name: "Validate file and folder names",
 					Message: "Content error: Invalid file and folder names:\n" +
-						"- \"bad folder\" has disallowed characters, allowed: a-z A-Z 0-9 dash (-) and underscore (_)\n" +
+						"- \"bad folder\" has disallowed characters, allowed: letters (a-z, A-Z), numbers (0-9), dash (-), and underscore (_)\n" +
 						"- folder \"other/data\" has a duplicate name \"data\" in the SIP",
 					Outcome:     childwf.TaskOutcomeValidationFailure,
 					StartedAt:   s.env.Now().UTC(),

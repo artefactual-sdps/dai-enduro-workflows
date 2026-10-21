@@ -1,8 +1,10 @@
 package activities_test
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"gotest.tools/v3/assert"
@@ -21,6 +23,28 @@ func TestCheckSIPInfo(t *testing.T) {
 	}
 
 	tests := map[string]test{
+		"Errors when a relative path exceeds the character limit": {
+			setup: func(t *testing.T) string {
+				t.Helper()
+				longName := strings.Repeat("a", activities.MaxFilePathLength+1)
+				return fs.NewDir(t, "sip",
+					fs.WithFile(longName, "x"),
+				).Path()
+			},
+			want: &activities.CheckSIPInfoResult{
+				SizeInBytes:         1,
+				NumberOfFiles:       1,
+				NumberOfDirectories: 0,
+				SizeHuman:           "1 B",
+				ValidationErrors: []string{
+					fmt.Sprintf(
+						"the path %q exceeds the maximum of %d allowed characters",
+						strings.Repeat("a", activities.MaxFilePathLength+1),
+						activities.MaxFilePathLength,
+					),
+				},
+			},
+		},
 		"Returns zero for an empty directory": {
 			setup: func(t *testing.T) string {
 				t.Helper()
@@ -77,6 +101,164 @@ func TestCheckSIPInfo(t *testing.T) {
 				return filepath.Join(t.TempDir(), "missing")
 			},
 			wantErr: "no such file or directory",
+		},
+		"Accepts a valid SIP tree": {
+			setup: func(t *testing.T) string {
+				t.Helper()
+				return fs.NewDir(t, "SIP_2025-10-20_A1B2_ABT",
+					fs.WithFile("readme.txt", "hello"),
+					fs.WithDir("data",
+						fs.WithFile("payload.bin", "world"),
+						fs.WithDir("nested",
+							fs.WithFile("ok.txt", "ok"),
+						),
+					),
+				).Path()
+			},
+			want: &activities.CheckSIPInfoResult{
+				SizeInBytes:         12,
+				NumberOfFiles:       3,
+				NumberOfDirectories: 2,
+				SizeHuman:           "12 B",
+			},
+		},
+		"Skips validation of the root directory": {
+			setup: func(t *testing.T) string {
+				t.Helper()
+				return fs.NewDir(t, "SIP with spaces",
+					fs.WithDir("data",
+						fs.WithFile("ok.txt", "ok"),
+					),
+				).Path()
+			},
+			want: &activities.CheckSIPInfoResult{
+				SizeInBytes:         2,
+				NumberOfFiles:       1,
+				NumberOfDirectories: 1,
+				SizeHuman:           "2 B",
+			},
+		},
+		"Errors when a folder name has disallowed characters": {
+			setup: func(t *testing.T) string {
+				t.Helper()
+				return fs.NewDir(t, "sip",
+					fs.WithDir("bad folder",
+						fs.WithFile("file.txt", "x"),
+					),
+				).Path()
+			},
+			want: &activities.CheckSIPInfoResult{
+				SizeInBytes:         1,
+				NumberOfFiles:       1,
+				NumberOfDirectories: 1,
+				SizeHuman:           "1 B",
+				ValidationErrors: []string{
+					`"bad folder" has disallowed characters, allowed: letters (a-z, A-Z), numbers (0-9), dash (-), and underscore (_)`,
+				},
+			},
+		},
+		"Errors when a folder name contains a dot": {
+			setup: func(t *testing.T) string {
+				t.Helper()
+				return fs.NewDir(t, "sip",
+					fs.WithDir("data.dir",
+						fs.WithFile("file.txt", "x"),
+					),
+				).Path()
+			},
+			want: &activities.CheckSIPInfoResult{
+				SizeInBytes:         1,
+				NumberOfFiles:       1,
+				NumberOfDirectories: 1,
+				SizeHuman:           "1 B",
+				ValidationErrors: []string{
+					`"data.dir" has disallowed characters, allowed: letters (a-z, A-Z), numbers (0-9), dash (-), and underscore (_)`,
+				},
+			},
+		},
+		"Errors when two folders share the same name": {
+			setup: func(t *testing.T) string {
+				t.Helper()
+				return fs.NewDir(t, "sip",
+					fs.WithDir("data",
+						fs.WithFile("a.txt", "a"),
+					),
+					fs.WithDir("other",
+						fs.WithDir("data",
+							fs.WithFile("b.txt", "b"),
+						),
+					),
+				).Path()
+			},
+			want: &activities.CheckSIPInfoResult{
+				SizeInBytes:         2,
+				NumberOfFiles:       2,
+				NumberOfDirectories: 3,
+				SizeHuman:           "2 B",
+				ValidationErrors: []string{
+					`folder "other/data" has a duplicate name "data" in the SIP`,
+				},
+			},
+		},
+		"Errors when nested folders exceed the limit": {
+			setup: func(t *testing.T) string {
+				t.Helper()
+				return fs.NewDir(t, "sip",
+					fs.WithDir("a",
+						fs.WithDir("b",
+							fs.WithDir("c",
+								fs.WithDir("d",
+									fs.WithDir("e",
+										fs.WithDir("f",
+											fs.WithDir("g",
+												fs.WithFile("deep.txt", "x"),
+											),
+										),
+									),
+								),
+							),
+						),
+					),
+				).Path()
+			},
+			want: &activities.CheckSIPInfoResult{
+				SizeInBytes:         1,
+				NumberOfFiles:       1,
+				NumberOfDirectories: 7,
+				SizeHuman:           "1 B",
+				ValidationErrors: []string{
+					`"a/b/c/d/e/f/g" exceeds the allowed nested folder limit of 5`,
+					`"a/b/c/d/e/f/g/deep.txt" exceeds the allowed nested folder limit of 5`,
+				},
+			},
+		},
+		"Collects multiple validation errors": {
+			setup: func(t *testing.T) string {
+				t.Helper()
+				return fs.NewDir(t, "sip",
+					fs.WithDir("bad name",
+						fs.WithFile("x.txt", "x"),
+					),
+					fs.WithDir("data",
+						fs.WithFile("a.txt", "a"),
+					),
+					fs.WithDir("other",
+						fs.WithDir("data",
+							fs.WithFile("b.txt", "b"),
+						),
+					),
+				).Path()
+			},
+			want: &activities.CheckSIPInfoResult{
+				SizeInBytes:         3,
+				NumberOfFiles:       3,
+				NumberOfDirectories: 4,
+				SizeHuman:           "3 B",
+				ValidationErrors: []string{
+					`"bad name" has disallowed characters, allowed: letters (a-z, A-Z), numbers (0-9), dash (-), and underscore (_)`,
+					`folder "other/data" has a duplicate name "data" in the SIP`,
+				},
+			},
 		},
 	}
 
