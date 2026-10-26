@@ -2,6 +2,8 @@ module github.com/artefactual-sdps/dai-enduro-workflows
 
 go 1.26.6
 
+toolchain go1.26.10
+
 require (
 	github.com/artefactual-sdps/enduro v0.34.1
 	github.com/artefactual-sdps/temporal-activities v0.0.0-20260924180237-fb0bc739e67b
